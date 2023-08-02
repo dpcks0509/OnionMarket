@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "933331609974",
+    "firebase_url": "https://onionmarket-42a5d-default-rtdb.firebaseio.com",
+    "project_id": "onionmarket-42a5d",
+    "storage_bucket": "onionmarket-42a5d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:933331609974:android:650c2c537014e818ddb257",
+        "android_client_info": {
+          "package_name": "pnu.cse.onionmarket"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "933331609974-klejbi77srflj1ogljk20u5rub778hab.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "pnu.cse.onionmarket",
+            "certificate_hash": "3c9e69e2826ed8f5ab1369d0ec2657c1752cb44f"
+          }
+        },
+        {
+          "client_id": "933331609974-66u4iu4nsd98mkae7k293v7dru94n11a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyByInRZP6WxN-9Sd2FSkr8piIjAr_QAzdc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "933331609974-66u4iu4nsd98mkae7k293v7dru94n11a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
