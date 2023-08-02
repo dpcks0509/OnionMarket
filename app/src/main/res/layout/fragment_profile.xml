@@ -16,12 +16,13 @@
 
 
         <TextView
+            android:id="@+id/profileText"
             android:layout_width="0dp"
             android:layout_height="?attr/actionBarSize"
             android:layout_weight="1"
             android:gravity="center"
             android:paddingStart="48dp"
-            android:text="마이페이지"
+            android:text="프로필"
             android:textColor="@color/black"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -43,7 +44,7 @@
         app:layout_constraintTop_toBottomOf="@id/toolbar" />
 
     <LinearLayout
-        android:id="@+id/myInfo"
+        android:id="@+id/userInfo"
         android:layout_width="0dp"
         android:layout_height="100dp"
         android:orientation="horizontal"
@@ -52,7 +53,7 @@
         app:layout_constraintTop_toBottomOf="@id/divide_line">
 
         <de.hdodenhof.circleimageview.CircleImageView
-            android:id="@+id/myImage"
+            android:id="@+id/userImage"
             android:layout_width="60dp"
             android:layout_height="60dp"
             android:layout_gravity="center"
@@ -62,7 +63,7 @@
             app:civ_border_width="1dp" />
 
         <TextView
-            android:id="@+id/myName"
+            android:id="@+id/userNickname"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
@@ -79,7 +80,7 @@
             android:src="@drawable/baseline_star_border_24" />
 
         <TextView
-            android:id="@+id/myStar"
+            android:id="@+id/userStar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
@@ -95,7 +96,7 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="#ACACAC"
-        app:layout_constraintBottom_toBottomOf="@id/myInfo" />
+        app:layout_constraintBottom_toBottomOf="@id/userInfo" />
 
     <TextView
         android:id="@+id/sellingPost"
@@ -107,7 +108,7 @@
         android:layout_marginBottom="10dp"
         android:layout_marginEnd="10dp"
         android:layout_marginStart="20dp"
-        app:layout_constraintStart_toStartOf="@id/myInfo"
+        app:layout_constraintStart_toStartOf="@id/userInfo"
         app:layout_constraintTop_toBottomOf="@id/divider"/>
 
     <TextView

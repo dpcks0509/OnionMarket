@@ -1,6 +1,7 @@
 package pnu.cse.onionmarket.post.detail
 
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
@@ -9,6 +10,7 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.bumptech.glide.Glide
+import com.google.firebase.auth.ktx.auth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
@@ -39,7 +41,6 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding = FragmentPostDetailBinding.bind(view)
-        val mainActivity = activity as MainActivity
 
         val writerId = args.writerId
         val postId = args.postId
@@ -47,10 +48,6 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
         Firebase.database.reference.child("Posts").child(postId)
             .addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-
-                Glide.with(binding.writerImage)
-                    .load(snapshot.child("postThumbnailUrl").getValue(String::class.java))
-                    .into(binding.writerImage)
 
                 val postImagesList = mutableListOf<String>()
                 val postImagesSnapshot = snapshot.child("postImagesUrl")
@@ -112,19 +109,14 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
         }
 
         binding.writerInfo.setOnClickListener {
-            findNavController().navigate(R.id.action_postDetailFragment_to_profileFragment)
+            val action = PostDetailFragmentDirections.actionPostDetailFragmentToProfileFragment(
+                writerId = writerId
+            )
+            findNavController().navigate(action)
         }
 
         binding.chatButton.setOnClickListener {
             findNavController().navigate(R.id.action_postDetailFragment_to_chatDetailFragment)
         }
-
-        binding.favoriteButton.setOnClickListener {
-
-        }
     }
-
-
-
-
 }

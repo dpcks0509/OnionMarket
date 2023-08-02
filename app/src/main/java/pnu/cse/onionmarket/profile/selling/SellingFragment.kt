@@ -1,6 +1,7 @@
 package pnu.cse.onionmarket.profile.selling
 
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
@@ -21,10 +22,28 @@ class SellingFragment: Fragment(R.layout.fragment_selling) {
     private lateinit var sellingAdapter: SellingAdapter
 
     private var sellingList = mutableListOf<PostItem>()
+    private val userId = Firebase.auth.currentUser?.uid
+
+    private var writerId: String? = null
+
+    companion object {
+        fun newInstance(writerId: String?): SellingFragment {
+            val fragment = SellingFragment()
+            val args = Bundle()
+            args.putString("writerId", writerId)
+            fragment.arguments = args
+            return fragment
+        }
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding = FragmentSellingBinding.bind(view)
+
+        arguments?.let {
+            // Retrieve the writerId from the arguments bundle
+            writerId = it.getString("writerId")
+        }
 
         sellingAdapter = SellingAdapter { post ->
             val action = ProfileFragmentDirections.actionProfileFragmentToPostDetailFragment(
@@ -34,25 +53,45 @@ class SellingFragment: Fragment(R.layout.fragment_selling) {
             findNavController().navigate(action)
         }
 
-        Firebase.database.reference.child("Posts")
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    sellingList = mutableListOf<PostItem>()
+        if(writerId == null) {
+            Firebase.database.reference.child("Posts")
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        sellingList = mutableListOf<PostItem>()
 
-                    snapshot.children.forEach {
-                        val post = it.getValue(PostItem::class.java)
-                        post ?: return
+                        snapshot.children.forEach {
+                            val post = it.getValue(PostItem::class.java)
+                            post ?: return
 
-                        // 자신의 게시글이 맞을경우에만 list에 저장
-                      if(post.writerId == Firebase.auth.currentUser?.uid)
-                            sellingList.add(post)
+                            if(post.writerId == userId)
+                                sellingList.add(post)
+                        }
+                        sellingAdapter.sellingList = sellingList
+                        sellingAdapter.notifyDataSetChanged()
                     }
-                    sellingAdapter.sellingList = sellingList
-                    sellingAdapter.notifyDataSetChanged()
-                }
 
-                override fun onCancelled(error: DatabaseError) {}
-            })
+                    override fun onCancelled(error: DatabaseError) {}
+                })
+        } else {
+            Firebase.database.reference.child("Posts")
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        sellingList = mutableListOf<PostItem>()
+
+                        snapshot.children.forEach {
+                            val post = it.getValue(PostItem::class.java)
+                            post ?: return
+
+                            if(post.writerId == writerId)
+                                sellingList.add(post)
+                        }
+                        sellingAdapter.sellingList = sellingList
+                        sellingAdapter.notifyDataSetChanged()
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {}
+                })
+        }
 
 
 

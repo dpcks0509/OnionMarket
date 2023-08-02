@@ -81,6 +81,9 @@
         <action
             android:id="@+id/action_profileFragment_to_postDetailFragment"
             app:destination="@id/postDetailFragment" />
+        <argument
+            android:name="writerId"
+            app:argType="string" />
     </fragment>
     <fragment
         android:id="@+id/postDetailFragment"
@@ -101,7 +104,9 @@
             app:destination="@id/chatDetailFragment" />
         <action
             android:id="@+id/action_postDetailFragment_to_profileFragment"
-            app:destination="@id/profileFragment" />
+            app:destination="@id/profileFragment"
+            app:popUpTo="@id/homeFragment"
+            app:popUpToInclusive="true"/>
         <argument
             android:name="writerId"
             app:argType="string" />
