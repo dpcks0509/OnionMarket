@@ -16,13 +16,15 @@ class ChatAdapter(private val onClick: (ChatItem) -> Unit) :
     inner class ViewHolder(private val binding: ItemChatBinding) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(item: ChatItem) {
-            Glide.with(binding.profileImageView)
+            Glide.with(binding.profileImage)
                 .load(item.otherUserProfile)
-                .into(binding.profileImageView)
+                .into(binding.profileImage)
 
-            binding.nicknameTextView.text = item.otherUserName
-            binding.lastMessageTextView.text = item.lastMessage
+            binding.nickname.text = item.otherUserName
+            binding.lastMessage.text = item.lastMessage
             binding.unreadMessage.text = item.unreadMessageNumber.toString()
+
+            binding.lastTime.text = item.lastTime
 
             binding.root.setOnClickListener {
                 onClick(item)

@@ -17,12 +17,12 @@ class ReviewAdapter()
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: ReviewItem) {
-            Glide.with(binding.profileImageView)
+            Glide.with(binding.profileImage)
                 .load(item.userProfile)
-                .into(binding.profileImageView)
+                .into(binding.profileImage)
 
-            binding.nicknameTextView.text = item.userName
-            binding.reviewTextView.text = item.reviewText
+            binding.nickname.text = item.userName
+            binding.reviewText.text = item.reviewText
             binding.starNumber.text = item.reviewStar.toString()
         }
     }

@@ -189,7 +189,7 @@
             android:layout_height="wrap_content"
             android:layout_marginLeft="5dp"
             android:background="@null"
-            android:hint="가격"
+            android:hint="가격 (20000원 이상)"
             android:inputType="numberDecimal"
             android:textColorHint="@color/divider_gray"
             android:textCursorDrawable="@drawable/cursor_color"

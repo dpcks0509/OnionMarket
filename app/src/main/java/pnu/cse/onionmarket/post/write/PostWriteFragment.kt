@@ -2,6 +2,7 @@ package pnu.cse.onionmarket.post.write
 
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
@@ -19,6 +20,7 @@ import com.google.firebase.storage.ktx.storage
 import pnu.cse.onionmarket.MainActivity
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.databinding.FragmentPostWriteBinding
+import pnu.cse.onionmarket.databinding.ItemWriteImageBinding
 import pnu.cse.onionmarket.home.HomeFragmentDirections
 import pnu.cse.onionmarket.home.HomePostAdapter
 import pnu.cse.onionmarket.post.PostItem
@@ -30,7 +32,7 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
     private lateinit var writeImageAdapter: WriteImageAdapter
     private lateinit var homePostAdapter: HomePostAdapter
 
-    private var imageList: List<Uri> = emptyList()
+    private var imageList: MutableList<Uri> = mutableListOf()
     private var postId = UUID.randomUUID().toString()
     private val writerId = Firebase.auth.currentUser?.uid!!
     private val imageId = UUID.randomUUID().toString()
@@ -38,10 +40,14 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
     private val pickMultipleMedia =
         registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(10)) { uris ->
             if (uris != null) {
+                if(imageList.size + uris.size > 10) {
+                    Toast.makeText(context,"사진은 최대 10장까지 선택 가능합니다.",Toast.LENGTH_SHORT).show()
+                    return@registerForActivityResult
+                }
                 val writeImageItems = uris.mapIndexed { index, uri ->
                     WriteImageItem(imageId, uri.toString())
                 }
-                imageList = uris
+                imageList.addAll(uris)
                 writeImageAdapter.setPostImageItemList(writeImageItems)
                 binding.imageCount.text = imageCount.toString()
             } else {
@@ -85,10 +91,14 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
         }
 
         binding.submitButton.setOnClickListener {
+            if (binding.writePostPrice.text.toString().toInt() < 20000) {
+                Toast.makeText(context, "판매가격을 20000원 이상으로 설정해주세요.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             if (imageList.isNotEmpty() && !binding.writePostTitle.text.isNullOrBlank()
                 && !binding.writePostPrice.text.isNullOrBlank() && !binding.writePostContent.text.isNullOrBlank()
             ) {
-                val imageUris = imageList ?: return@setOnClickListener
+                val imageUris = writeImageAdapter.imageList.map{ Uri.parse(it.imageUrl) } ?: return@setOnClickListener
                 uploadImages(imageUris,
                     successHandler = {
                         uploadPost(it)
@@ -121,6 +131,7 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
             }
 
             val uri = uris[index]
+            val imageId = UUID.randomUUID().toString() // 각 이미지마다 새로운 UUID 생성
             val fileName = "${imageId}.png"
             Firebase.storage.reference.child("posts/${postId}").child(fileName)
                 .putFile(uri)
@@ -130,7 +141,7 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
                             .downloadUrl
                             .addOnSuccessListener { url ->
                                 uploadedUrls.add(url.toString())
-                                uploadNextImage(index + 1) // Upload the next image
+                                uploadNextImage(index + 1) // 다음 이미지 업로드
                             }.addOnFailureListener { exception ->
                                 errorHandler(exception)
                             }
@@ -169,8 +180,11 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
                     )
                     Firebase.database.reference.child("Posts").child(postId).setValue(post)
                         .addOnSuccessListener {
+                            if(Firebase.auth.currentUser?.uid.isNullOrEmpty())
+                                return@addOnSuccessListener
                             addPostList.add(post)
                             homePostAdapter.submitList(addPostList)
+
                             findNavController().popBackStack()
                         }.addOnFailureListener {
                             Toast.makeText(context, "게시글 정보를 모두 입력해주세요.", Toast.LENGTH_SHORT).show()

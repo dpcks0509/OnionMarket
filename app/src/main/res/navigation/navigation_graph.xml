@@ -70,9 +70,6 @@
         android:label="ProfileFragment"
         tools:layout="@layout/fragment_profile">
         <action
-            android:id="@+id/action_profileFragment_to_settingFragment"
-            app:destination="@id/settingFragment" />
-        <action
             android:id="@+id/action_profileFragment_to_reviewFragment"
             app:destination="@id/reviewFragment" />
         <action
@@ -121,7 +118,9 @@
         tools:layout="@layout/fragment_post_write">
         <action
             android:id="@+id/action_postWriteFragment_to_homeFragment"
-            app:destination="@id/homeFragment" />
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/homeFragment"
+            app:popUpToInclusive="true"/>
     </fragment>
     <fragment
         android:id="@+id/chatDetailFragment"
@@ -146,12 +145,7 @@
         android:name="pnu.cse.onionmarket.profile.review.ReviewFragment"
         android:label="ReviewFragment"
         tools:layout="@layout/fragment_review"/>
-    <fragment
-        android:id="@+id/settingFragment"
-        android:name="pnu.cse.onionmarket.profile.SettingFragment"
-        android:label="SettingFragment"
-        tools:layout="@layout/fragment_setting">
-    </fragment>
+
     <fragment
         android:id="@+id/sellingFragment"
         android:name="pnu.cse.onionmarket.profile.selling.SellingFragment"

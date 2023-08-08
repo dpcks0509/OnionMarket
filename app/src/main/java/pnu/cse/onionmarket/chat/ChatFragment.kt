@@ -35,14 +35,14 @@ class ChatFragment: Fragment(R.layout.fragment_chat) {
 
         // 데이터 예시
         with(chatList) {
-            chatList.add(ChatItem("1","1",R.drawable.baseline_person_24,"번데기껍질","안녕하세요",1))
-            chatList.add(ChatItem("1","1",R.drawable.baseline_person_24,"번데기껍질","안녕하세요",1))
-            chatList.add(ChatItem("1","1",R.drawable.baseline_person_24,"번데기껍질","안녕하세요",1))
-            chatList.add(ChatItem("1","1",R.drawable.baseline_person_24,"번데기껍질","안녕하세요",1))
-            chatList.add(ChatItem("1","1",R.drawable.baseline_person_24,"번데기껍질","안녕하세요",1))
-            chatList.add(ChatItem("1","1",R.drawable.baseline_person_24,"번데기껍질","안녕하세요",1))
-            chatList.add(ChatItem("1","1",R.drawable.baseline_person_24,"번데기껍질","안녕하세요",1))
-            chatList.add(ChatItem("1","1",R.drawable.baseline_person_24,"번데기껍질","안녕하세요",1))
+            chatList.add(ChatItem("1","1",R.drawable.app_logo,"번데기껍질","안녕하세요","3시간전",1))
+            chatList.add(ChatItem("1","1",R.drawable.app_logo,"번데기껍질","안녕하세요","3시간전",1))
+            chatList.add(ChatItem("1","1",R.drawable.app_logo,"번데기껍질","안녕하세요","3시간전",1))
+            chatList.add(ChatItem("1","1",R.drawable.app_logo,"번데기껍질","안녕하세요","3시간전",1))
+            chatList.add(ChatItem("1","1",R.drawable.app_logo,"번데기껍질","안녕하세요","3시간전",1))
+            chatList.add(ChatItem("1","1",R.drawable.app_logo,"번데기껍질","안녕하세요","3시간전",1))
+            chatList.add(ChatItem("1","1",R.drawable.app_logo,"번데기껍질","안녕하세요","3시간전",1))
+            chatList.add(ChatItem("1","1",R.drawable.app_logo,"번데기껍질","안녕하세요","3시간전",1))
         }
     }
 }

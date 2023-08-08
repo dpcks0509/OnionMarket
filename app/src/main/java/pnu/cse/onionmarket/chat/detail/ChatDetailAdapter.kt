@@ -2,13 +2,14 @@ package pnu.cse.onionmarket.chat.detail
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import pnu.cse.onionmarket.databinding.ItemChatDetailBinding
 
-class ChatDetailAdapter()
+class ChatDetailAdapter(private val nickname: TextView)
     : ListAdapter<ChatDetailItem, ChatDetailAdapter.ViewHolder>(differ) {
 
     var chatDetailList = mutableListOf<ChatDetailItem>()
@@ -16,13 +17,13 @@ class ChatDetailAdapter()
     inner class ViewHolder(private val binding: ItemChatDetailBinding) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(item: ChatDetailItem) {
-            Glide.with(binding.userProfile)
+            Glide.with(binding.profileImage)
                 .load(item.userProfile)
-                .into(binding.userProfile)
+                .into(binding.profileImage)
+            binding.message .text = item.message
+            binding.time.text = item.time
 
-            binding.usernameTextView.text = item.userName
-            binding.messageTextView.text = item.message
-
+            nickname.text = item.userName
         }
     }
 

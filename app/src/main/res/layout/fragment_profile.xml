@@ -77,7 +77,7 @@
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:layout_gravity="center"
-            android:src="@drawable/baseline_star_border_24" />
+            android:src="@drawable/baseline_star_24" />
 
         <TextView
             android:id="@+id/userStar"
@@ -87,7 +87,7 @@
             android:layout_marginStart="5dp"
             android:layout_marginEnd="20dp"
             android:text="4.5"
-            android:textColor="#FF9800"
+            android:textColor="#FFC107"
             android:textSize="20sp" />
     </LinearLayout>
 

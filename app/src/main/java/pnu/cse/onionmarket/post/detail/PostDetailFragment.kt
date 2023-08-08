@@ -47,62 +47,67 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
 
         Firebase.database.reference.child("Posts").child(postId)
             .addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-
-                val postImagesList = mutableListOf<String>()
-                val postImagesSnapshot = snapshot.child("postImagesUrl")
-
-                for (postImageSnapshot in postImagesSnapshot.children) {
-                    val postImageUrl = postImageSnapshot.getValue(String::class.java)
-                    postImageUrl?.let { postImagesList.add(it) }
-                }
-
-                val loopingViewPager = binding.postImage
-                val indicator = binding.indicator
-
-                val postImageAdapter = PostImageAdapter(postImagesList,false)
-                loopingViewPager.adapter = postImageAdapter
-
-                indicator.highlighterViewDelegate = {
-                    val highlighter = View(requireContext())
-                    highlighter.layoutParams = FrameLayout.LayoutParams(resources.getDimensionPixelSize(R.dimen.indicator_width),
-                        resources.getDimensionPixelSize(R.dimen.indicator_height))
-                    highlighter.setBackgroundResource(R.drawable.indicator_circle)
-                    highlighter
-                }
-                indicator.unselectedViewDelegate = {
-                    val unselected = View(requireContext())
-                    unselected.layoutParams = LinearLayout.LayoutParams(resources.getDimensionPixelSize(R.dimen.indicator_width),
-                        resources.getDimensionPixelSize(R.dimen.indicator_height))
-                    unselected.setBackgroundResource(R.drawable.indicator_circle)
-                    unselected.alpha = 0.4f
-                    unselected
-                }
-
-                loopingViewPager.onIndicatorProgress = { selectingPosition, progress -> indicator.onPageScrolled(selectingPosition, progress) }
-                indicator.updateIndicatorCounts(loopingViewPager.indicatorCount)
-
-                binding.writerName.text = snapshot.child("writerNickname").getValue(String::class.java)
-                binding.writerStar.text = snapshot.child("writerStar").getValue(Double::class.java).toString()
-
-                binding.postTitle.text = snapshot.child("postTitle").getValue(String::class.java)
-                binding.postPrice.text = snapshot.child("postPrice").getValue(String::class.java)
-                binding.postContent.text = snapshot.child("postContent").getValue(String::class.java)
-                binding.postStatus.apply {
-                    if (snapshot.child("postStatus").getValue(Boolean::class.java) == true) {
-                        text = "판매중"
-                        backgroundTintList =
-                            ContextCompat.getColorStateList(binding.root.context, R.color.main_color)
-                    } else {
-                        text = "판매완료"
-                        backgroundTintList =
-                            ContextCompat.getColorStateList(binding.root.context, R.color.gray)
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if(!isAdded) {
+                        return
                     }
-                }
 
-            }
-            override fun onCancelled(error: DatabaseError) {}
-        })
+                    val postImagesList = mutableListOf<String>()
+                    val postImagesSnapshot = snapshot.child("postImagesUrl")
+
+                    for (postImageSnapshot in postImagesSnapshot.children) {
+                        val postImageUrl = postImageSnapshot.getValue(String::class.java)
+                        postImageUrl?.let { postImagesList.add(it) }
+                    }
+
+                    val loopingViewPager = binding.postImage
+                    val indicator = binding.indicator
+
+                    val postImageAdapter = PostImageAdapter(postImagesList,false)
+                    loopingViewPager.adapter = postImageAdapter
+
+
+
+                    indicator.highlighterViewDelegate = {
+                        val highlighter = View(requireContext())
+                        highlighter.layoutParams = FrameLayout.LayoutParams(resources.getDimensionPixelSize(R.dimen.indicator_width),
+                            resources.getDimensionPixelSize(R.dimen.indicator_height))
+                        highlighter.setBackgroundResource(R.drawable.indicator_circle)
+                        highlighter
+                    }
+                    indicator.unselectedViewDelegate = {
+                        val unselected = View(requireContext())
+                        unselected.layoutParams = LinearLayout.LayoutParams(resources.getDimensionPixelSize(R.dimen.indicator_width),
+                            resources.getDimensionPixelSize(R.dimen.indicator_height))
+                        unselected.setBackgroundResource(R.drawable.indicator_circle)
+                        unselected.alpha = 0.4f
+                        unselected
+                    }
+
+                    loopingViewPager.onIndicatorProgress = { selectingPosition, progress -> indicator.onPageScrolled(selectingPosition, progress) }
+                    indicator.updateIndicatorCounts(loopingViewPager.indicatorCount)
+
+                    binding.writerName.text = snapshot.child("writerNickname").getValue(String::class.java)
+                    binding.writerStar.text = snapshot.child("writerStar").getValue(Double::class.java).toString()
+
+                    binding.postTitle.text = snapshot.child("postTitle").getValue(String::class.java)
+                    binding.postPrice.text = snapshot.child("postPrice").getValue(String::class.java)
+                    binding.postContent.text = snapshot.child("postContent").getValue(String::class.java)
+                    binding.postStatus.apply {
+                        if (snapshot.child("postStatus").getValue(Boolean::class.java) == true) {
+                            text = "판매중"
+                            backgroundTintList =
+                                ContextCompat.getColorStateList(binding.root.context, R.color.main_color)
+                        } else {
+                            text = "판매완료"
+                            backgroundTintList =
+                                ContextCompat.getColorStateList(binding.root.context, R.color.gray)
+                        }
+                    }
+
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
 
         binding.backButton.setOnClickListener{
             findNavController().popBackStack()

@@ -27,14 +27,14 @@ class ReviewFragment: Fragment(R.layout.fragment_review) {
 
         // 데이터 예시
         with(reviewList) {
-            add(ReviewItem("1", "1", R.drawable.baseline_person_24, "번데기껍질", "좋은거래였어요", 4.5))
-            add(ReviewItem("1", "1", R.drawable.baseline_person_24, "번데기껍질", "좋은거래였어요", 4.5))
-            add(ReviewItem("1", "1", R.drawable.baseline_person_24, "번데기껍질", "좋은거래였어요", 4.5))
-            add(ReviewItem("1", "1", R.drawable.baseline_person_24, "번데기껍질", "좋은거래였어요", 4.5))
-            add(ReviewItem("1", "1", R.drawable.baseline_person_24, "번데기껍질", "좋은거래였어요", 4.5))
-            add(ReviewItem("1", "1", R.drawable.baseline_person_24, "번데기껍질", "좋은거래였어요", 4.5))
-            add(ReviewItem("1", "1", R.drawable.baseline_person_24, "번데기껍질", "좋은거래였어요", 4.5))
-            add(ReviewItem("1", "1", R.drawable.baseline_person_24, "번데기껍질", "좋은거래였어요", 4.5))
+            add(ReviewItem("1", "1", R.drawable.app_logo, "번데기껍질", "좋은거래였어요", 4.5))
+            add(ReviewItem("1", "1", R.drawable.app_logo, "번데기껍질", "좋은거래였어요", 4.5))
+            add(ReviewItem("1", "1", R.drawable.app_logo, "번데기껍질", "좋은거래였어요", 4.5))
+            add(ReviewItem("1", "1", R.drawable.app_logo, "번데기껍질", "좋은거래였어요", 4.5))
+            add(ReviewItem("1", "1", R.drawable.app_logo, "번데기껍질", "좋은거래였어요", 4.5))
+            add(ReviewItem("1", "1", R.drawable.app_logo, "번데기껍질", "좋은거래였어요", 4.5))
+            add(ReviewItem("1", "1", R.drawable.app_logo, "번데기껍질", "좋은거래였어요", 4.5))
+            add(ReviewItem("1", "1", R.drawable.app_logo, "번데기껍질", "좋은거래였어요", 4.5))
         }
     }
 }

@@ -42,4 +42,8 @@
     <style name="BlackToolbarTheme" parent="@style/ThemeOverlay.AppCompat.ActionBar">
         <item name="colorControlNormal">@color/black</item>
     </style>
+
+    <style name="SplashTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/white</item> <!-- Set the background color here -->
+    </style>
 </resources>
