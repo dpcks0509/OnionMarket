@@ -25,6 +25,11 @@
 
         <TextView
             android:layout_width="0dp"
+            android:text="게시글"
+            android:textColor="@color/black"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:gravity="center"
             android:layout_height="?attr/actionBarSize"
             android:layout_weight="1" />
 
@@ -34,7 +39,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:backgroundTint="@color/white"
-            android:src="@drawable/baseline_more_vert_24" />
+            android:src="@drawable/baseline_more_horiz_24" />
     </LinearLayout>
 
     <ScrollView
@@ -54,20 +59,20 @@
                 android:id="@+id/postImage"
                 android:layout_width="match_parent"
                 android:layout_height="400dp"
-                app:isInfinite="false"
                 app:autoScroll="false"
-                app:scrollInterval="5000"
-                app:layout_constraintBottom_toTopOf="@id/writerInfo" />
+                app:isInfinite="false"
+                app:layout_constraintBottom_toTopOf="@id/writerInfo"
+                app:scrollInterval="5000" />
 
             <com.asksira.loopingviewpager.indicator.CustomShapePagerIndicator
                 android:id="@+id/indicator"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
+                app:indicator_spacing="4dp"
                 app:layout_constraintBottom_toBottomOf="@id/postImage"
                 app:layout_constraintLeft_toLeftOf="parent"
-                app:layout_constraintRight_toRightOf="parent"
-                app:indicator_spacing="4dp"/>
+                app:layout_constraintRight_toRightOf="parent" />
 
             <View
                 android:layout_width="match_parent"
@@ -109,7 +114,7 @@
                     android:layout_width="30dp"
                     android:layout_height="30dp"
                     android:layout_gravity="center"
-                    android:src="@drawable/baseline_star_border_24" />
+                    android:src="@drawable/baseline_star_24" />
 
                 <TextView
                     android:id="@+id/writerStar"
@@ -118,7 +123,7 @@
                     android:layout_gravity="center"
                     android:layout_marginStart="5dp"
                     android:layout_marginEnd="10dp"
-                    android:text="4.5"
+                    android:text="5.0"
                     android:textColor="#FF9800"
                     android:textSize="20sp" />
             </LinearLayout>
@@ -155,8 +160,8 @@
                 android:layout_height="match_parent"
                 android:padding="10dp"
                 android:text="게시글 상세내용\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\게시글 상세내용"
-                android:textSize="20sp"
                 android:textColor="@color/black"
+                android:textSize="20sp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/post_title" />
@@ -181,10 +186,10 @@
             android:layout_height="40dp"
             android:layout_gravity="center"
             android:background="@drawable/button_radius"
+            android:backgroundTint="@color/main_color"
             android:gravity="center"
             android:text="판매중"
             android:textColor="@color/white"
-            android:backgroundTint="@color/main_color"
             android:textSize="20sp"
             android:textStyle="bold" />
 
@@ -205,7 +210,6 @@
             android:layout_width="100dp"
             android:layout_height="40dp"
             android:layout_marginStart="10dp"
-
             android:background="@drawable/button_background"
             android:gravity="center"
             android:text="채팅하기"

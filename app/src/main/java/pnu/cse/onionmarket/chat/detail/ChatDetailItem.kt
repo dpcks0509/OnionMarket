@@ -6,5 +6,4 @@ data class ChatDetailItem(
     val userProfile: Int? = null,
     val userName: String? = null,
     val message: String? = null,
-    val time: String? = null
 )

@@ -24,7 +24,6 @@ class ChatAdapter(private val onClick: (ChatItem) -> Unit) :
             binding.lastMessage.text = item.lastMessage
             binding.unreadMessage.text = item.unreadMessageNumber.toString()
 
-            binding.lastTime.text = item.lastTime
 
             binding.root.setOnClickListener {
                 onClick(item)

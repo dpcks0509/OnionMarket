@@ -49,14 +49,14 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
 
         // 데이터 예시
         with(chatDetailList) {
-            add(ChatDetailItem("1", "1", R.drawable.app_logo, "번데기껍질", "안녕하세요", "10:15 오후"))
-            add(ChatDetailItem("1", "1", R.drawable.app_logo, "번데기껍질", "안녕하세요", "10:15 오후"))
-            add(ChatDetailItem("1", "1", R.drawable.app_logo, "번데기껍질", "안녕하세요", "10:15 오후"))
-            add(ChatDetailItem("1", "1", R.drawable.app_logo, "번데기껍질", "안녕하세요", "10:15 오후"))
-            add(ChatDetailItem("1", "1", R.drawable.app_logo, "번데기껍질", "안녕하세요", "10:15 오후"))
-            add(ChatDetailItem("1", "1", R.drawable.app_logo, "번데기껍질", "안녕하세요", "10:15 오후"))
-            add(ChatDetailItem("1", "1", R.drawable.app_logo, "번데기껍질", "안녕하세요", "10:15 오후"))
-            add(ChatDetailItem("1", "1", R.drawable.app_logo, "번데기껍질", "안녕하세요", "10:15 오후"))
+            add(ChatDetailItem("1", "1", R.drawable.app_logo, "양파", "안녕하세요"))
+            add(ChatDetailItem("1", "1", R.drawable.app_logo, "양파", "안녕하세요"))
+            add(ChatDetailItem("1", "1", R.drawable.app_logo, "양파", "안녕하세요"))
+            add(ChatDetailItem("1", "1", R.drawable.app_logo, "양파", "안녕하세요"))
+            add(ChatDetailItem("1", "1", R.drawable.app_logo, "양파", "안녕하세요"))
+            add(ChatDetailItem("1", "1", R.drawable.app_logo, "양파", "안녕하세요"))
+            add(ChatDetailItem("1", "1", R.drawable.app_logo, "양파", "안녕하세요"))
+            add(ChatDetailItem("1", "1", R.drawable.app_logo, "양파", "안녕하세요"))
         }
     }
 }

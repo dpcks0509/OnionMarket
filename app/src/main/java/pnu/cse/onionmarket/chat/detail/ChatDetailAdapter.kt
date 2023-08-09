@@ -21,8 +21,6 @@ class ChatDetailAdapter(private val nickname: TextView)
                 .load(item.userProfile)
                 .into(binding.profileImage)
             binding.message .text = item.message
-            binding.time.text = item.time
-
             nickname.text = item.userName
         }
     }

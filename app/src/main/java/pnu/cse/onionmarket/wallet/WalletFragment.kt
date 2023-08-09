@@ -34,14 +34,14 @@ class WalletFragment: Fragment(R.layout.fragment_wallet) {
 
         // 데이터 예시
         with(walletList) {
-            add(WalletItem("1", "번데기껍질님의 지갑", 1000000))
-            add(WalletItem("1", "번데기껍질님의 지갑", 1000000))
-            add(WalletItem("1", "번데기껍질님의 지갑", 1000000))
-            add(WalletItem("1", "번데기껍질님의 지갑", 1000000))
-            add(WalletItem("1", "번데기껍질님의 지갑", 1000000))
-            add(WalletItem("1", "번데기껍질님의 지갑", 1000000))
-            add(WalletItem("1", "번데기껍질님의 지갑", 1000000))
-            add(WalletItem("1", "번데기껍질님의 지갑", 1000000))
+            add(WalletItem("1", "양파", 1000000))
+            add(WalletItem("1", "양파", 1000000))
+            add(WalletItem("1", "양파", 1000000))
+            add(WalletItem("1", "양파", 1000000))
+            add(WalletItem("1", "양파", 1000000))
+            add(WalletItem("1", "양파", 1000000))
+            add(WalletItem("1", "양파", 1000000))
+            add(WalletItem("1", "양파", 1000000))
         }
     }
 }

@@ -10,6 +10,9 @@ import com.bumptech.glide.Glide
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.databinding.ItemPostBinding
 import pnu.cse.onionmarket.post.PostItem
+import java.text.SimpleDateFormat
+import java.time.Instant
+import java.util.*
 
 class HomePostAdapter(
     private val onClick: (PostItem) -> Unit,
@@ -27,7 +30,23 @@ class HomePostAdapter(
                 .into(binding.postThumbnail)
 
             binding.postTitle.text = item.postTitle
-            binding.postPrice.text = item.postPrice
+
+            val priceWithoutCommas = item.postPrice.toString()
+            val formattedPrice = StringBuilder()
+            var commaCounter = 0
+
+            for (i in priceWithoutCommas.length - 1 downTo 0) {
+                formattedPrice.append(priceWithoutCommas[i])
+                commaCounter++
+
+                if (commaCounter == 3 && i > 0) {
+                    formattedPrice.append(",")
+                    commaCounter = 0
+                }
+            }
+            formattedPrice.reverse()
+
+            binding.postPrice.text = "$formattedPrice 원"
             binding.postStatus.apply {
                 if (item.postStatus == true) {
                     text = "판매중"

@@ -19,6 +19,8 @@ import pnu.cse.onionmarket.databinding.FragmentHomeBinding
 import pnu.cse.onionmarket.post.PostItem
 import pnu.cse.onionmarket.search.SearchAdapter
 import pnu.cse.onionmarket.search.SearchItem
+import java.text.SimpleDateFormat
+import java.time.Instant
 import java.util.*
 
 class HomeFragment : Fragment(R.layout.fragment_home) {
@@ -76,7 +78,10 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         })
 
         binding.postWriteButton.setOnClickListener {
-            findNavController().navigate(R.id.action_homeFragment_to_postWriteFragment)
+            val action = HomeFragmentDirections.actionHomeFragmentToPostWriteFragment(
+                postId = ""
+            )
+            findNavController().navigate(action)
         }
 
         Firebase.database.reference.child("Posts")

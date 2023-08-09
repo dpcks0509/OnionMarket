@@ -25,6 +25,11 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
+            android:text="게시글 작성"
+            android:textColor="@color/black"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:gravity="center"
             android:layout_weight="1" />
 
         <TextView
@@ -189,8 +194,9 @@
             android:layout_height="wrap_content"
             android:layout_marginLeft="5dp"
             android:background="@null"
-            android:hint="가격 (20000원 이상)"
+            android:hint="가격 (10000원 이상)"
             android:inputType="numberDecimal"
+            android:maxLength="8"
             android:textColorHint="@color/divider_gray"
             android:textCursorDrawable="@drawable/cursor_color"
             android:textSize="16dp"
@@ -226,5 +232,25 @@
             app:layout_constraintTop_toBottomOf="@id/divider3" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <FrameLayout
+        android:id="@+id/progressBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0">
+
+        <ImageView
+            android:id="@+id/progressImageView"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_gravity="center"
+            android:src="@drawable/app_logo" />
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

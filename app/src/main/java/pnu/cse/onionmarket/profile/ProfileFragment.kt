@@ -52,27 +52,13 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
             popupMenu.setOnMenuItemClickListener {
                 when (it.itemId) {
                     R.id.logout_button -> {
+                        FirebaseAuth.getInstance().signOut()
+                        googleSignInClient?.signOut()
 
-                        val builder = AlertDialog.Builder(context)
-                        builder
-                            .setTitle("로그아웃")
-                            .setMessage("로그아웃 하시겠습니까?")
-                            .setPositiveButton("로그아웃",
-                                DialogInterface.OnClickListener { dialog, id ->
-
-                                    FirebaseAuth.getInstance().signOut()
-                                    googleSignInClient?.signOut()
-
-                                    var signOutIntent = Intent(context, LoginActivity::class.java)
-                                    signOutIntent.flags =
-                                        Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
-                                    startActivity(signOutIntent)
-                                })
-                            .setNegativeButton("취소",
-                                DialogInterface.OnClickListener { dialog, id -> })
-
-                        builder.create()
-                        builder.show()
+                        var signOutIntent = Intent(context, LoginActivity::class.java)
+                        signOutIntent.flags =
+                            Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
+                        startActivity(signOutIntent)
                     }
                     R.id.withdrawal_button -> {
                         val builder = AlertDialog.Builder(context)
@@ -81,14 +67,11 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                             .setMessage("정말로 회원탈퇴를 하시겠습니까?\n회원탈퇴시 이후 복구가 불가능합니다.")
                             .setPositiveButton("탈퇴",
                                 DialogInterface.OnClickListener { dialog, id ->
-
                                     // 회원탈퇴
                                     val user = Firebase.auth.currentUser
                                     user?.delete()
                                         ?.addOnCompleteListener { task ->
                                             if (task.isSuccessful) {
-
-
                                                 val postList: MutableList<PostItem> =
                                                     mutableListOf()
                                                 Firebase.database.reference.child("Posts")
@@ -118,13 +101,19 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                                                                     imageRef.listAll()
                                                                         .addOnSuccessListener { listResult ->
                                                                             // Delete each image in the list
-                                                                            val deletePromises = mutableListOf<Task<Void>>()
+                                                                            val deletePromises =
+                                                                                mutableListOf<Task<Void>>()
                                                                             listResult.items.forEach { item ->
-                                                                                val deletePromise = item.delete()
-                                                                                deletePromises.add(deletePromise)
+                                                                                val deletePromise =
+                                                                                    item.delete()
+                                                                                deletePromises.add(
+                                                                                    deletePromise
+                                                                                )
                                                                             }
 
-                                                                            Tasks.whenAllComplete(deletePromises)
+                                                                            Tasks.whenAllComplete(
+                                                                                deletePromises
+                                                                            )
                                                                                 .addOnSuccessListener {
                                                                                 }
                                                                                 .addOnFailureListener { exception ->
@@ -138,9 +127,6 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
 
                                                         override fun onCancelled(error: DatabaseError) {}
                                                     })
-
-                                                // 사진 삭제
-
 
                                                 Firebase.database.reference.child("Users")
                                                     .child(userId!!).removeValue()
@@ -172,7 +158,6 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         }
 
         binding.settingButton.visibility = View.VISIBLE
-        binding.profileText.setPadding(dpToPx(48), 0, 0, 0)
         Firebase.database.reference.child("Users").child(userId!!)
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -187,7 +172,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
 
         if (userId == writerId) {
             binding.settingButton.visibility = View.VISIBLE
-            binding.profileText.setPadding(dpToPx(48), 0, 0, 0)
+
             Firebase.database.reference.child("Users").child(userId!!)
                 .addValueEventListener(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
@@ -201,8 +186,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                 })
         } else {
             if (writerId != null) {
-                binding.settingButton.visibility = View.GONE
-                binding.profileText.setPadding(0, 0, 0, 0)
+                binding.settingButton.visibility = View.INVISIBLE
                 Firebase.database.reference.child("Users").child(writerId!!)
                     .addValueEventListener(object : ValueEventListener {
                         override fun onDataChange(snapshot: DataSnapshot) {
@@ -237,10 +221,4 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
 
 
     }
-
-    fun dpToPx(dp: Int): Int {
-        val density = resources.displayMetrics.density
-        return (dp * density).toInt()
-    }
-
 }

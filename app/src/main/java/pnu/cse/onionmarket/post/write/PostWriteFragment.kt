@@ -1,15 +1,25 @@
 package pnu.cse.onionmarket.post.write
 
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.AlphaAnimation
+import android.view.animation.Animation
+import android.view.animation.DecelerateInterpolator
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import androidx.navigation.fragment.navArgs
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.gms.tasks.Task
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -20,7 +30,6 @@ import com.google.firebase.storage.ktx.storage
 import pnu.cse.onionmarket.MainActivity
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.databinding.FragmentPostWriteBinding
-import pnu.cse.onionmarket.databinding.ItemWriteImageBinding
 import pnu.cse.onionmarket.home.HomeFragmentDirections
 import pnu.cse.onionmarket.home.HomePostAdapter
 import pnu.cse.onionmarket.post.PostItem
@@ -33,9 +42,13 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
     private lateinit var homePostAdapter: HomePostAdapter
 
     private var imageList: MutableList<Uri> = mutableListOf()
-    private var postId = UUID.randomUUID().toString()
+    private lateinit var postId: String
     private val writerId = Firebase.auth.currentUser?.uid!!
-    private val imageId = UUID.randomUUID().toString()
+
+    private var uploadedUrls: MutableList<String> = mutableListOf()
+
+    private var editPost: PostItem = PostItem()
+    private var edit = false
 
     private val pickMultipleMedia =
         registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(10)) { uris ->
@@ -45,7 +58,7 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
                     return@registerForActivityResult
                 }
                 val writeImageItems = uris.mapIndexed { index, uri ->
-                    WriteImageItem(imageId, uri.toString())
+                    WriteImageItem(UUID.randomUUID().toString(), uri.toString())
                 }
                 imageList.addAll(uris)
                 writeImageAdapter.setPostImageItemList(writeImageItems)
@@ -54,6 +67,7 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
                 // uri 리스트에 값이 없을 경우
             }
         }
+
 
     override fun onResume() {
         super.onResume()
@@ -72,6 +86,7 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding = FragmentPostWriteBinding.bind(view)
+
         writeImageAdapter = WriteImageAdapter(binding.imageCount)
 
         homePostAdapter = HomePostAdapter { post ->
@@ -80,6 +95,43 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
                     post.writerId.orEmpty(), post.postId.orEmpty()
                 )
             )
+        }
+
+        val args: PostWriteFragmentArgs by navArgs()
+
+        if(args.postId.isNullOrEmpty()) {
+            postId = UUID.randomUUID().toString()
+            edit = false
+        }
+        // 게시글 수정
+        else {
+            postId = args.postId
+            edit = true
+
+            Firebase.database.reference.child("Posts").child(postId).addListenerForSingleValueEvent(object: ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    editPost = snapshot.getValue(PostItem::class.java)!!
+
+                    uploadedUrls.clear()
+
+                    val imageUris = editPost.postImagesUrl!!.map { Uri.parse(it) }
+
+                    val editImageItems = editPost.postImagesUrl!!.mapIndexed{ index, imageUrl ->
+                        WriteImageItem(UUID.randomUUID().toString(), imageUrl)
+                    }
+
+                    imageList.addAll(imageUris)
+                    writeImageAdapter.setPostImageItemList(editImageItems)
+
+                    binding.imageCount.text = imageCount.toString()
+                    binding.writePostTitle.setText(editPost.postTitle)
+                    binding.writePostPrice.setText(editPost.postPrice)
+                    binding.writePostContent.setText(editPost.postContent)
+
+                }
+
+                override fun onCancelled(error: DatabaseError) {}
+            })
         }
 
         binding.backButton.setOnClickListener {
@@ -91,23 +143,61 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
         }
 
         binding.submitButton.setOnClickListener {
-            if (binding.writePostPrice.text.toString().toInt() < 20000) {
-                Toast.makeText(context, "판매가격을 20000원 이상으로 설정해주세요.", Toast.LENGTH_SHORT).show()
+            val imm =
+                context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.hideSoftInputFromWindow(binding.root.windowToken, 0)
+
+            if (binding.writePostPrice.text.toString().toInt() < 10000) {
+                Toast.makeText(context, "가격을 10000원 이상 설정해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (imageList.isNotEmpty() && !binding.writePostTitle.text.isNullOrBlank()
                 && !binding.writePostPrice.text.isNullOrBlank() && !binding.writePostContent.text.isNullOrBlank()
             ) {
-                val imageUris = writeImageAdapter.imageList.map{ Uri.parse(it.imageUrl) } ?: return@setOnClickListener
+
+                showProgress()
+
+                // 기존 이미지 삭제
+                val imageRef =
+                    Firebase.storage.reference.child(
+                        "posts/${postId}"
+                    )
+                imageRef.listAll()
+                    .addOnSuccessListener { listResult ->
+                        // Delete each image in the list
+                        val deletePromises =
+                            mutableListOf<Task<Void>>()
+                        listResult.items.forEach { item ->
+                            val deletePromise =
+                                item.delete()
+                            deletePromises.add(
+                                deletePromise
+                            )
+                        }
+
+                        Tasks.whenAllComplete(
+                            deletePromises
+                        )
+                            .addOnSuccessListener {
+                            }
+                            .addOnFailureListener { exception ->
+                            }
+                    }
+                    .addOnFailureListener { exception ->}
+
+                val imageUris = writeImageAdapter.imageList.map{ Uri.parse(it.imageUrl) }
+
                 uploadImages(imageUris,
                     successHandler = {
                         uploadPost(it)
                     },
                     errorHandler = {
                         Toast.makeText(context, "이미지 업로드에 실패하였습니다.", Toast.LENGTH_SHORT).show()
+                        hideProgress()
                     })
             } else {
                 Toast.makeText(context, "게시글 정보를 모두 입력해주세요.", Toast.LENGTH_SHORT).show()
+                hideProgress()
             }
         }
 
@@ -122,7 +212,6 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
         successHandler: (List<String>) -> Unit,
         errorHandler: (Throwable?) -> Unit
     ) {
-        val uploadedUrls = mutableListOf<String>()
 
         fun uploadNextImage(index: Int) {
             if (index >= uris.size) {
@@ -137,14 +226,8 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
                 .putFile(uri)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
-                        Firebase.storage.reference.child("posts/${postId}/${fileName}")
-                            .downloadUrl
-                            .addOnSuccessListener { url ->
-                                uploadedUrls.add(url.toString())
-                                uploadNextImage(index + 1) // 다음 이미지 업로드
-                            }.addOnFailureListener { exception ->
-                                errorHandler(exception)
-                            }
+                        uploadedUrls.add(uri.toString())
+                        uploadNextImage(index + 1)
                     } else {
                         task.exception?.printStackTrace()
                         errorHandler(task.exception)
@@ -166,11 +249,11 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
 
                     val post = PostItem(
                         postId = postId,
-                        createdAt = System.currentTimeMillis(),
+                        createdAt = editPost.createdAt ?: System.currentTimeMillis(),
                         postImagesUrl = photoUrl,
                         postThumbnailUrl = photoUrl[0],
                         postTitle = binding.writePostTitle.text.toString(),
-                        postPrice = binding.writePostPrice.text.toString() + " 원",
+                        postPrice = binding.writePostPrice.text.toString(),
                         postContent = binding.writePostContent.text.toString(),
                         postStatus = true,
                         writerId = writerId,
@@ -178,21 +261,73 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
                         writerPhone = writerPhone,
                         writerStar = writerStar
                     )
+
                     Firebase.database.reference.child("Posts").child(postId).setValue(post)
                         .addOnSuccessListener {
                             if(Firebase.auth.currentUser?.uid.isNullOrEmpty())
                                 return@addOnSuccessListener
                             addPostList.add(post)
                             homePostAdapter.submitList(addPostList)
-
                             findNavController().popBackStack()
+                            hideProgress()
                         }.addOnFailureListener {
                             Toast.makeText(context, "게시글 정보를 모두 입력해주세요.", Toast.LENGTH_SHORT).show()
+                            hideProgress()
                         }
+                    hideProgress()
                 }
 
                 override fun onCancelled(error: DatabaseError) {}
-
             })
+    }
+
+    private fun showProgress() {
+        binding.progressBarLayout.visibility = View.VISIBLE
+        animateProgressBar(true)
+    }
+
+    private fun hideProgress() {
+        binding.progressBarLayout.visibility = View.GONE
+        animateProgressBar(false)
+    }
+
+    private fun animateProgressBar(show: Boolean) {
+        // 애니메이션 설정
+        val fadeInDuration = 500L
+        val fadeOutDuration = 500L
+
+        // 나타나는 애니메이션
+        val fadeIn = AlphaAnimation(0.2f, 0.8f)
+        fadeIn.interpolator = DecelerateInterpolator()
+        fadeIn.duration = fadeInDuration
+        fadeIn.setAnimationListener(object : Animation.AnimationListener {
+            override fun onAnimationStart(animation: Animation) {
+                binding.progressImageView.visibility = View.VISIBLE
+            }
+
+            override fun onAnimationEnd(animation: Animation) {
+                // 사라지는 애니메이션 시작
+                val fadeOut = AlphaAnimation(0.8f, 0.2f)
+                fadeOut.interpolator = AccelerateInterpolator()
+                fadeOut.duration = fadeOutDuration
+                fadeOut.setAnimationListener(object : Animation.AnimationListener {
+                    override fun onAnimationStart(animation: Animation) {}
+
+                    override fun onAnimationEnd(animation: Animation) {
+                        binding.progressImageView.visibility = View.GONE
+                        if(show)
+                            binding.progressImageView.startAnimation(fadeIn)
+                    }
+
+                    override fun onAnimationRepeat(animation: Animation) {}
+                })
+
+                binding.progressImageView.startAnimation(fadeOut)
+            }
+
+            override fun onAnimationRepeat(animation: Animation) {}
+        })
+
+        binding.progressImageView.startAnimation(fadeIn)
     }
 }
