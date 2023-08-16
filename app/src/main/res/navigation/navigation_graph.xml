@@ -34,6 +34,9 @@
         <argument
             android:name="firstSearch"
             app:argType="boolean" />
+        <action
+            android:id="@+id/action_homeFragment_to_chatDetailFragment"
+            app:destination="@id/chatDetailFragment" />
     </fragment>
     <fragment
         android:id="@+id/searchFragment"
@@ -81,6 +84,12 @@
         <argument
             android:name="writerId"
             app:argType="string" />
+        <argument
+            android:name="postId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_profileFragment_to_chatDetailFragment"
+            app:destination="@id/chatDetailFragment" />
     </fragment>
     <fragment
         android:id="@+id/postDetailFragment"
@@ -115,6 +124,9 @@
             app:destination="@id/chatFragment"
             app:popUpTo="@id/homeFragment"
             app:popUpToInclusive="true"/>
+        <action
+            android:id="@+id/action_postDetailFragment_to_safePaymentFragment"
+            app:destination="@id/safePaymentFragment" />
     </fragment>
     <fragment
         android:id="@+id/postWriteFragment"
@@ -141,6 +153,12 @@
         <action
             android:id="@+id/action_chatDetailFragment_to_searchFragment"
             app:destination="@id/searchFragment" />
+        <argument
+            android:name="chatRoomId"
+            app:argType="string" />
+        <argument
+            android:name="otherUserId"
+            app:argType="string" />
     </fragment>
 
     <fragment
@@ -159,4 +177,13 @@
         android:name="pnu.cse.onionmarket.profile.selling.SellingFragment"
         android:label="SellingFragment"
         tools:layout="@layout/fragment_selling"/>
+    <fragment
+        android:id="@+id/safePaymentFragment"
+        android:name="pnu.cse.onionmarket.payment.SafePaymentFragment"
+        android:label="SafePaymentFragment"
+        tools:layout="@layout/fragment_safe_payment">
+        <argument
+            android:name="postId"
+            app:argType="string" />
+    </fragment>
 </navigation>

@@ -226,8 +226,12 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
                 .putFile(uri)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
-                        uploadedUrls.add(uri.toString())
-                        uploadNextImage(index + 1)
+                        task.result?.storage?.downloadUrl?.addOnSuccessListener { downloadUri ->
+                            uploadedUrls.add(downloadUri.toString())
+                            uploadNextImage(index + 1)
+                        }?.addOnFailureListener { exception ->
+                            errorHandler(exception)
+                        }
                     } else {
                         task.exception?.printStackTrace()
                         errorHandler(task.exception)

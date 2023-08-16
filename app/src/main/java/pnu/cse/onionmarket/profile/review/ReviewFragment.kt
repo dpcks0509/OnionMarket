@@ -21,7 +21,7 @@ class ReviewFragment: Fragment(R.layout.fragment_review) {
         reviewAdapter.reviewList = reviewList
 
         binding.reviewRecyclerview.apply {
-            layoutManager = LinearLayoutManager(context)
+            layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
             adapter = reviewAdapter
         }
 

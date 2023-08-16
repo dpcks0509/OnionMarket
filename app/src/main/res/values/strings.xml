@@ -108,4 +108,7 @@
 
     <!-- common -->
     <string name="str_dot_str">%1$s · %2$s</string>
+
+    <string name="default_notification_channel_id">default_notification_channel_id</string>
+    <string name="fcm_server_key">AAAA2U7mKXY:APA91bEf9cyMrzrnHNH1uhH4Ahk3pVNUriMjOHjB422Tc90_bBoaqdSX6ivUBIYb6k9FpXc0f3jiW79dm5Dh1OTVFlQTwHZpL6mKSE5ie0TYTI3bLbPkAAuFAya5398K7rCKGZluK1Rz</string>
 </resources>

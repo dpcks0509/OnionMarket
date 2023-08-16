@@ -22,15 +22,18 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
+import com.google.firebase.database.ktx.snapshots
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 
 import pnu.cse.onionmarket.LoginActivity
 import pnu.cse.onionmarket.MainActivity
 import pnu.cse.onionmarket.R
+import pnu.cse.onionmarket.chat.ChatItem
 import pnu.cse.onionmarket.databinding.FragmentPostDetailBinding
 import pnu.cse.onionmarket.home.HomeFragmentDirections
 import pnu.cse.onionmarket.post.PostItem
+import java.util.UUID
 
 class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
     private lateinit var binding: FragmentPostDetailBinding
@@ -60,15 +63,71 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
 
         if (userId == writerId) {
             binding.editButton.visibility = View.VISIBLE
+            binding.postStatus.visibility = View.VISIBLE
+            binding.safePaymentButton.visibility = View.GONE
+
             binding.chatButton.text = "나의채팅"
             binding.chatButton.setOnClickListener {
                 findNavController().navigate(R.id.action_postDetailFragment_to_chatFragment)
             }
         } else {
             binding.editButton.visibility = View.GONE
+            binding.postStatus.visibility = View.GONE
+            binding.safePaymentButton.visibility = View.VISIBLE
+
+            binding.safePaymentButton.setOnClickListener {
+                val action = PostDetailFragmentDirections.actionPostDetailFragmentToSafePaymentFragment(
+                    postId = postId
+                )
+                findNavController().navigate(action)
+            }
+
             binding.chatButton.text = "채팅하기"
             binding.chatButton.setOnClickListener {
-                findNavController().navigate(R.id.action_postDetailFragment_to_chatDetailFragment)
+
+                val chatRoomDB =
+                    Firebase.database.reference.child("ChatRooms").child(userId!!).child(writerId)
+                var chatRoomId = ""
+
+                chatRoomDB.get().addOnSuccessListener {
+
+                    if (it.value != null) {
+                        val chatRoom = it.getValue(ChatItem::class.java)
+                        chatRoomId = chatRoom?.chatRoomId!!
+
+                        val action =
+                            PostDetailFragmentDirections.actionPostDetailFragmentToChatDetailFragment(
+                                chatRoomId = chatRoomId,
+                                otherUserId = writerId
+                            )
+                        findNavController().navigate(action)
+                    } else {
+                        chatRoomId = UUID.randomUUID().toString()
+                        Firebase.database.reference.child("Posts").child(postId)
+                            .addValueEventListener(object : ValueEventListener {
+                                override fun onDataChange(snapshot: DataSnapshot) {
+                                    val post = snapshot.getValue(PostItem::class.java)!!
+
+                                    val newChatRoom = ChatItem(
+                                        chatRoomId = chatRoomId,
+                                        otherUserId = post.writerId,
+                                        otherUserProfile = R.drawable.app_logo,
+                                        otherUserName = post.writerNickname,
+                                    )
+                                    chatRoomDB.setValue(newChatRoom)
+                                }
+
+                                override fun onCancelled(error: DatabaseError) {}
+                            })
+
+                        val action =
+                            PostDetailFragmentDirections.actionPostDetailFragmentToChatDetailFragment(
+                                chatRoomId = chatRoomId,
+                                otherUserId = writerId
+                            )
+                        findNavController().navigate(action)
+                    }
+                }
             }
         }
 
@@ -78,7 +137,6 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                     if (!isAdded) {
                         return
                     }
-
                     val postImagesList = mutableListOf<String>()
                     val postImagesSnapshot = snapshot.child("postImagesUrl")
 
@@ -129,7 +187,8 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                     binding.postTitle.text =
                         snapshot.child("postTitle").getValue(String::class.java)
 
-                    val priceWithoutCommas = snapshot.child("postPrice").getValue(String::class.java)!!
+                    val priceWithoutCommas =
+                        snapshot.child("postPrice").getValue(String::class.java)!!
                     val formattedPrice = StringBuilder()
                     var commaCounter = 0
 
@@ -169,12 +228,13 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
             })
 
         binding.backButton.setOnClickListener {
-            findNavController().popBackStack()
+            findNavController().navigate(R.id.homeFragment)
         }
 
         binding.writerInfo.setOnClickListener {
             val action = PostDetailFragmentDirections.actionPostDetailFragmentToProfileFragment(
-                writerId = writerId
+                writerId = writerId,
+                postId = postId
             )
             findNavController().navigate(action)
         }

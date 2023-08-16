@@ -47,6 +47,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-messaging-ktx'
     implementation 'com.google.firebase:firebase-database-ktx'
     implementation 'com.google.firebase:firebase-storage-ktx'
+    implementation 'com.google.firebase:firebase-messaging-directboot:20.2.0'
 
     // google login
     implementation 'com.google.android.gms:play-services-auth:20.6.0'
@@ -71,6 +72,9 @@ dependencies {
 
     // looping viewpager
     implementation 'com.asksira.android:loopingviewpager:1.4.1'
+
+    // okhttp
+    implementation 'com.squareup.okhttp3:okhttp:4.10.0'
 
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.appcompat:appcompat:1.4.1'

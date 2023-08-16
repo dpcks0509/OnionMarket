@@ -1,29 +1,55 @@
 package pnu.cse.onionmarket.chat
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.TextView
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import pnu.cse.onionmarket.databinding.ItemChatBinding
 
 class ChatAdapter(private val onClick: (ChatItem) -> Unit) :
     ListAdapter<ChatItem, ChatAdapter.ViewHolder>(differ) {
 
-    var chatList = mutableListOf<ChatItem>()
-
     inner class ViewHolder(private val binding: ItemChatBinding) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(item: ChatItem) {
+            var unreadMessage = 0
+
             Glide.with(binding.profileImage)
                 .load(item.otherUserProfile)
                 .into(binding.profileImage)
 
+            val myUserId = Firebase.auth.currentUser?.uid
+            Firebase.database.reference.child("ChatRooms").child(myUserId!!).child(item.otherUserId!!)
+                .addValueEventListener(object: ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        if(snapshot.exists())
+                            unreadMessage = snapshot.child("unreadMessage").getValue(Int::class.java)!!
+                        if(unreadMessage == 0)
+                            binding.unreadMessage.isVisible = false
+                        else
+                            binding.unreadMessage.isVisible = true
+                        binding.unreadMessage.text = unreadMessage.toString()
+
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                    }
+
+                })
+
             binding.nickname.text = item.otherUserName
             binding.lastMessage.text = item.lastMessage
-            binding.unreadMessage.text = item.unreadMessageNumber.toString()
-
 
             binding.root.setOnClickListener {
                 onClick(item)
@@ -55,10 +81,10 @@ class ChatAdapter(private val onClick: (ChatItem) -> Unit) :
     }
 
     override fun getItemCount(): Int {
-        return chatList.size
+        return currentList.size
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(chatList[position])
+        holder.bind(currentList[position])
     }
 }

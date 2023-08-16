@@ -96,7 +96,7 @@ class SellingFragment: Fragment(R.layout.fragment_selling) {
 
 
         binding.sellingRecyclerView.apply {
-            layoutManager = LinearLayoutManager(context)
+            layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
             adapter = sellingAdapter
         }
 

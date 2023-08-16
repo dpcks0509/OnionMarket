@@ -25,13 +25,13 @@
 
         <TextView
             android:layout_width="0dp"
+            android:layout_height="?attr/actionBarSize"
+            android:layout_weight="1"
+            android:gravity="center"
             android:text="게시글"
             android:textColor="@color/black"
             android:textSize="20sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:layout_height="?attr/actionBarSize"
-            android:layout_weight="1" />
+            android:textStyle="bold" />
 
         <ImageButton
             android:id="@+id/editButton"
@@ -191,7 +191,8 @@
             android:text="판매중"
             android:textColor="@color/white"
             android:textSize="20sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/post_price"
@@ -202,8 +203,24 @@
             android:layout_weight="1"
             android:text="10,000원"
             android:textColor="@color/black"
-            android:textSize="20sp"
+            android:textSize="25sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/safePaymentButton"
+            android:layout_width="100dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/button_background"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground"
+            android:gravity="center"
+            android:text="안전결제"
+            android:textColor="@color/white"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
 
         <TextView
             android:id="@+id/chatButton"
@@ -211,6 +228,9 @@
             android:layout_height="40dp"
             android:layout_marginStart="10dp"
             android:background="@drawable/button_background"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground"
             android:gravity="center"
             android:text="채팅하기"
             android:textColor="@color/white"

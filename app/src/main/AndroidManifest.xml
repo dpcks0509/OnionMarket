@@ -6,7 +6,6 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
-        android:name="pnu.cse.onionmarket.preference.PreferenceApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -36,7 +35,20 @@
             </intent-filter>
         </activity>
 
-
+        <service
+            android:name=".chat.ChatService"
+            android:exported="false"
+            android:directBootAware="true">>
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/app_logo"/>
+        <meta-data
+            android:name="com.google.firebase.messaging.default_channel_id"
+            android:value="@string/default_notification_channel_id"/>
     </application>
 
 </manifest>

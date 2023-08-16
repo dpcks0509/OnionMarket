@@ -26,23 +26,29 @@ import com.google.firebase.storage.ktx.storage
 import pnu.cse.onionmarket.LoginActivity
 import pnu.cse.onionmarket.MainActivity
 import pnu.cse.onionmarket.R
+import pnu.cse.onionmarket.chat.ChatItem
 import pnu.cse.onionmarket.databinding.FragmentProfileBinding
 import pnu.cse.onionmarket.home.HomeFragmentArgs
 import pnu.cse.onionmarket.post.PostItem
+import pnu.cse.onionmarket.post.detail.PostDetailFragmentDirections
+import pnu.cse.onionmarket.post.write.PostWriteFragmentArgs
 import pnu.cse.onionmarket.profile.review.ReviewFragment
 import pnu.cse.onionmarket.profile.selling.SellingFragment
+import java.util.*
 
 class ProfileFragment : Fragment(R.layout.fragment_profile) {
     private lateinit var binding: FragmentProfileBinding
-
-    private var googleSignInClient: GoogleSignInClient? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding = FragmentProfileBinding.bind(view)
 
         val userId = Firebase.auth.currentUser?.uid
+
         val writerId = arguments?.getString("writerId")
+        val postId = arguments?.getString("postId")
+
+
 
         binding.settingButton.setOnClickListener {
             var popupMenu = PopupMenu(context, it)
@@ -53,7 +59,6 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                 when (it.itemId) {
                     R.id.logout_button -> {
                         FirebaseAuth.getInstance().signOut()
-                        googleSignInClient?.signOut()
 
                         var signOutIntent = Intent(context, LoginActivity::class.java)
                         signOutIntent.flags =
@@ -132,7 +137,6 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                                                     .child(userId!!).removeValue()
 
                                                 FirebaseAuth.getInstance().signOut()
-                                                googleSignInClient?.signOut()
 
                                                 val signOutIntent =
                                                     Intent(context, LoginActivity::class.java)
@@ -157,7 +161,13 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
             }
         }
 
+        val mainActivity = activity as MainActivity
+        mainActivity.hideBottomNavigation(false)
+
+        binding.backButton.visibility = View.INVISIBLE
         binding.settingButton.visibility = View.VISIBLE
+        binding.profileChatButton.visibility = View.GONE
+
         Firebase.database.reference.child("Users").child(userId!!)
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -171,7 +181,12 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
             })
 
         if (userId == writerId) {
+            val mainActivity = activity as MainActivity
+            mainActivity.hideBottomNavigation(false)
+
+            binding.backButton.visibility = View.INVISIBLE
             binding.settingButton.visibility = View.VISIBLE
+            binding.profileChatButton.visibility = View.GONE
 
             Firebase.database.reference.child("Users").child(userId!!)
                 .addValueEventListener(object : ValueEventListener {
@@ -186,7 +201,13 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                 })
         } else {
             if (writerId != null) {
+                val mainActivity = activity as MainActivity
+                mainActivity.hideBottomNavigation(true)
+
+                binding.backButton.visibility = View.VISIBLE
                 binding.settingButton.visibility = View.INVISIBLE
+                binding.profileChatButton.visibility = View.VISIBLE
+
                 Firebase.database.reference.child("Users").child(writerId!!)
                     .addValueEventListener(object : ValueEventListener {
                         override fun onDataChange(snapshot: DataSnapshot) {
@@ -198,27 +219,81 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
 
                         override fun onCancelled(error: DatabaseError) {}
                     })
+
+                binding.backButton.setOnClickListener {
+                    val action = ProfileFragmentDirections.actionProfileFragmentToPostDetailFragment(
+                        writerId = writerId,
+                        postId = postId!!
+                    )
+                    findNavController().navigate(action)
+                }
+
+                binding.profileChatButton.setOnClickListener {
+                    val chatRoomDB =
+                        Firebase.database.reference.child("ChatRooms").child(userId!!).child(writerId)
+                    var chatRoomId = ""
+
+                    chatRoomDB.get().addOnSuccessListener {
+
+                        if (it.value != null) {
+                            val chatRoom = it.getValue(ChatItem::class.java)
+                            chatRoomId = chatRoom?.chatRoomId!!
+
+                            val action =
+                                ProfileFragmentDirections.actionProfileFragmentToChatDetailFragment(
+                                    chatRoomId = chatRoomId,
+                                    otherUserId = writerId
+                                )
+                            findNavController().navigate(action)
+                        } else {
+                            chatRoomId = UUID.randomUUID().toString()
+                            Firebase.database.reference.child("Posts").child(postId!!)
+                                .addValueEventListener(object : ValueEventListener {
+                                    override fun onDataChange(snapshot: DataSnapshot) {
+                                        val post = snapshot.getValue(PostItem::class.java)!!
+
+                                        val newChatRoom = ChatItem(
+                                            chatRoomId = chatRoomId,
+                                            otherUserId = post.writerId,
+                                            otherUserProfile = R.drawable.app_logo,
+                                            otherUserName = post.writerNickname,
+                                        )
+                                        chatRoomDB.setValue(newChatRoom)
+                                    }
+
+                                    override fun onCancelled(error: DatabaseError) {}
+                                })
+
+                            val action =
+                                ProfileFragmentDirections.actionProfileFragmentToChatDetailFragment(
+                                    chatRoomId = chatRoomId,
+                                    otherUserId = writerId
+                                )
+                            findNavController().navigate(action)
+                        }
+                    }
+                }
             }
-        }
 
 
-        val sellingFragment = SellingFragment.newInstance(writerId)
-        childFragmentManager.beginTransaction()
-            .replace(R.id.myPageFrameLayout, sellingFragment)
-            .commit()
-
-        binding.sellingPost.setOnClickListener {
+            val sellingFragment = SellingFragment.newInstance(writerId)
             childFragmentManager.beginTransaction()
                 .replace(R.id.myPageFrameLayout, sellingFragment)
                 .commit()
+
+            binding.sellingPost.setOnClickListener {
+                childFragmentManager.beginTransaction()
+                    .replace(R.id.myPageFrameLayout, sellingFragment)
+                    .commit()
+            }
+
+            binding.review.setOnClickListener {
+                childFragmentManager.beginTransaction()
+                    .replace(R.id.myPageFrameLayout, ReviewFragment())
+                    .commit()
+            }
+
+
         }
-
-        binding.review.setOnClickListener {
-            childFragmentManager.beginTransaction()
-                .replace(R.id.myPageFrameLayout, ReviewFragment())
-                .commit()
-        }
-
-
     }
 }

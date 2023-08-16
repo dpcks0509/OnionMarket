@@ -21,6 +21,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.messaging.ktx.messaging
 import pnu.cse.onionmarket.databinding.ActivityJoinBinding
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -83,16 +84,19 @@ class JoinActivity : AppCompatActivity() {
 
                                         val userId = currentUser.uid
 
-                                        val user = mutableMapOf<String, Any>()
-                                        user["userId"] = userId
-                                        user["userPhone"] = phone
-                                        user["userNickname"] = nickname
-                                        user["userStar"] = 0.0
-
-                                        Firebase.database.reference.child("Users").child(userId).setValue(user)
-
-                                        Firebase.auth.signOut()
-                                        startActivity(Intent(this@JoinActivity, LoginActivity::class.java))
+                                        Firebase.messaging.token.addOnCompleteListener {
+                                            val token = it.result
+                                            val user = UserItem(
+                                                userId = userId,
+                                                userNickname = nickname,
+                                                userPhone = phone,
+                                                userStar = 0.0,
+                                                userToken = token
+                                            )
+                                            Firebase.database.reference.child("Users").child(userId).setValue(user)
+                                            Firebase.auth.signOut()
+                                            startActivity(Intent(this@JoinActivity, LoginActivity::class.java))
+                                        }
                                     }
                                     // 회원가입 실패
                                     else {
