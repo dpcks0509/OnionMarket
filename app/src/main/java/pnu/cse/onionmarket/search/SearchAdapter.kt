@@ -1,14 +1,24 @@
 package pnu.cse.onionmarket.search
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import pnu.cse.onionmarket.databinding.ItemSearchBinding
 
-class SearchAdapter(private val onClick: (SearchItem) -> Unit) :
+class SearchAdapter(private val noSearch: FrameLayout?, private val onClick: (SearchItem) -> Unit) :
     ListAdapter<SearchItem, SearchAdapter.ViewHolder>(differ) {
+
+    init {
+        if(searchList.isEmpty()) {
+            noSearch?.visibility = View.VISIBLE
+        } else {
+            noSearch?.visibility = View.GONE
+        }
+    }
 
     inner class ViewHolder(private val binding: ItemSearchBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -17,11 +27,19 @@ class SearchAdapter(private val onClick: (SearchItem) -> Unit) :
 
             binding.searchedText.setOnClickListener {
                 onClick(item)
+                addItem(item)
             }
 
             binding.removeButton.setOnClickListener {
                 removeItem(item)
+
+                if(searchList.isEmpty()) {
+                    noSearch?.visibility = View.VISIBLE
+                } else {
+                    noSearch?.visibility = View.GONE
+                }
             }
+
         }
     }
 
@@ -54,7 +72,9 @@ class SearchAdapter(private val onClick: (SearchItem) -> Unit) :
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(searchList[position])
+
+        val reversedPosition = itemCount - 1 - position
+        holder.bind(searchList[reversedPosition])
     }
 
     private fun removeItem(item: SearchItem) {
@@ -63,7 +83,10 @@ class SearchAdapter(private val onClick: (SearchItem) -> Unit) :
     }
 
     fun addItem(item: SearchItem) {
-        searchList.add(item)
+        val updatedList = searchList.filter { it.searchedText != item.searchedText }.toMutableList()
+        updatedList.add(item)
+        searchList.clear()
+        searchList.addAll(updatedList)
         notifyDataSetChanged()
     }
 }

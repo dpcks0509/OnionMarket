@@ -12,6 +12,7 @@
     <color name="divider_color">#F4F4F4</color>
     <color name="selected_menu">#000000</color>
     <color name="unselected_menu">#ACACAC</color>
+    <color name="pink">#ffa6bb</color>
 
     <color name="greenery">#90B54C</color>
     <color name="light_gray">#CCCCCC</color>

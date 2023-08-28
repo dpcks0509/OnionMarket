@@ -34,6 +34,10 @@ class JoinActivity : AppCompatActivity() {
         binding = ActivityJoinBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        binding.backButton.setOnClickListener {
+            startActivity(Intent(this, LoginActivity::class.java))
+        }
+
         binding.joinButton.setOnClickListener {
             val email = binding.joinEmail.text.toString()
             val password = binding.joinPassword.text.toString()
@@ -84,6 +88,7 @@ class JoinActivity : AppCompatActivity() {
 
                                         val userId = currentUser.uid
 
+
                                         Firebase.messaging.token.addOnCompleteListener {
                                             val token = it.result
                                             val user = UserItem(
@@ -91,7 +96,7 @@ class JoinActivity : AppCompatActivity() {
                                                 userNickname = nickname,
                                                 userPhone = phone,
                                                 userStar = 0.0,
-                                                userToken = token
+                                                userToken = token,
                                             )
                                             Firebase.database.reference.child("Users").child(userId).setValue(user)
                                             Firebase.auth.signOut()

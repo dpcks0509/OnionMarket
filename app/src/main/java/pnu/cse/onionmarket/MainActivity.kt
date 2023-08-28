@@ -17,10 +17,11 @@ import androidx.navigation.findNavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
-import pnu.cse.onionmarket.chat.ChatAdapter
-import pnu.cse.onionmarket.chat.detail.ChatDetailFragment.Companion.unreadMessage
 import pnu.cse.onionmarket.databinding.ActivityMainBinding
 import pnu.cse.onionmarket.home.HomeFragmentDirections
 
@@ -42,8 +43,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         // 로그인 상태가 아니면 로그인 창으로 이동
-        val currentUser = Firebase.auth.currentUser
-        if (currentUser == null) {
+        val currentUser = Firebase.auth.currentUser?.uid
+        if (currentUser == null || currentUser.toString().contains("com.google.firebase.auth.internal")) {
             startActivity(Intent(this, LoginActivity::class.java))
             finish()
         }
@@ -52,14 +53,23 @@ class MainActivity : AppCompatActivity() {
         val myUserId = Firebase.auth.currentUser?.uid
         val chatRoomId = intent.getStringExtra("chatRoomId")
         val otherUserId = intent.getStringExtra("otherUserId")
+
         if(!chatRoomId.isNullOrEmpty()) {
-            unreadMessage = 0
 
-            val updates: MutableMap<String, Any> = hashMapOf(
-                "ChatRooms/$myUserId/$otherUserId/unreadMessage" to unreadMessage
-            )
+            Firebase.database.reference.child("ChatRooms").child(myUserId!!).child(otherUserId!!)
+                .addValueEventListener(object: ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        if(snapshot.exists()) {
+                            val updates: MutableMap<String, Any> = hashMapOf(
+                                "ChatRooms/$myUserId/${otherUserId}/unreadMessage" to 0
+                            )
+                            Firebase.database.reference.updateChildren(updates)
+                        }
+                    }
 
-            Firebase.database.reference.updateChildren(updates)
+                    override fun onCancelled(error: DatabaseError) {}
+
+                })
 
             val action = HomeFragmentDirections.actionHomeFragmentToChatDetailFragment(
                 chatRoomId = chatRoomId,

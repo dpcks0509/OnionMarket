@@ -68,6 +68,12 @@ class SellingFragment: Fragment(R.layout.fragment_selling) {
                         }
                         sellingAdapter.sellingList = sellingList
                         sellingAdapter.notifyDataSetChanged()
+
+                        if(sellingList.isEmpty()) {
+                            binding.noSelling.visibility = View.VISIBLE
+                        } else {
+                            binding.noSelling.visibility = View.GONE
+                        }
                     }
 
                     override fun onCancelled(error: DatabaseError) {}
@@ -87,6 +93,12 @@ class SellingFragment: Fragment(R.layout.fragment_selling) {
                         }
                         sellingAdapter.sellingList = sellingList
                         sellingAdapter.notifyDataSetChanged()
+
+                        if(sellingAdapter.sellingList.isEmpty()) {
+                            binding.noSelling.visibility = View.VISIBLE
+                        } else {
+                            binding.noSelling.visibility = View.GONE
+                        }
                     }
 
                     override fun onCancelled(error: DatabaseError) {}

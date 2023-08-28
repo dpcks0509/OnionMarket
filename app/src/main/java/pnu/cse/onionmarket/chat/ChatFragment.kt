@@ -3,7 +3,10 @@ package pnu.cse.onionmarket.chat
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.View.GONE
+import android.view.View.VISIBLE
 import android.widget.LinearLayout
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.DividerItemDecoration
@@ -41,18 +44,10 @@ class ChatFragment : Fragment(R.layout.fragment_chat) {
                     otherUserId = item.otherUserId
                 )
             findNavController().navigate(action)
-
-            ChatDetailFragment.unreadMessage = 0
-
-            val updates: MutableMap<String, Any> = hashMapOf(
-                "ChatRooms/$userId/${item.otherUserId}/unreadMessage" to ChatDetailFragment.unreadMessage
-            )
-
-            Firebase.database.reference.updateChildren(updates)
         }
 
         binding.chatListRecyclerView.apply {
-            layoutManager = LinearLayoutManager(context)
+            layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
             adapter = chatAdapter
             setHasFixedSize(true)
             addItemDecoration(DividerItemDecoration(context, LinearLayout.VERTICAL))
@@ -63,10 +58,16 @@ class ChatFragment : Fragment(R.layout.fragment_chat) {
 
         chatRoomsDB.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val chatRoomList = snapshot.children.map {
+                val chatRoomList = snapshot.children.mapNotNull {
                     it.getValue(ChatItem::class.java)
-                }
+                }.sortedByDescending { it.lastMessageTime } // 최근 메시지 시간을 기준으로 내림차순 정렬
                 chatAdapter.submitList(chatRoomList)
+
+                if(chatAdapter.currentList.isEmpty()) {
+                    binding.noChat.visibility = VISIBLE
+                } else {
+                    binding.noChat.visibility = GONE
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {

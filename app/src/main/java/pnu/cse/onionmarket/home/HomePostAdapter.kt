@@ -52,6 +52,7 @@ class HomePostAdapter(
                     text = "판매중"
                     backgroundTintList =
                         ContextCompat.getColorStateList(binding.root.context, R.color.main_color)
+
                 } else {
                     text = "판매완료"
                     backgroundTintList =

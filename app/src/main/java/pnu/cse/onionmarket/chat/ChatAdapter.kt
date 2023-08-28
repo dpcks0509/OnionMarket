@@ -15,6 +15,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.databinding.ItemChatBinding
 
 class ChatAdapter(private val onClick: (ChatItem) -> Unit) :
@@ -25,15 +26,32 @@ class ChatAdapter(private val onClick: (ChatItem) -> Unit) :
         fun bind(item: ChatItem) {
             var unreadMessage = 0
 
-            Glide.with(binding.profileImage)
-                .load(item.otherUserProfile)
-                .into(binding.profileImage)
+            if(!item.otherUserProfile.isNullOrEmpty())
+                Glide.with(binding.profileImage)
+                    .load(item.otherUserProfile)
+                    .into(binding.profileImage)
+
+            Firebase.database.reference.child("Users").child(item.otherUserId!!).addValueEventListener(object:
+                ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val userImageUri = snapshot.child("userProfileImage").getValue(String::class.java)
+
+                    if(!userImageUri.isNullOrEmpty())
+                         Glide.with(binding.profileImage)
+                        .load(userImageUri)
+                        .into(binding.profileImage)
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                }
+
+            })
 
             val myUserId = Firebase.auth.currentUser?.uid
             Firebase.database.reference.child("ChatRooms").child(myUserId!!).child(item.otherUserId!!)
                 .addValueEventListener(object: ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
-                        if(snapshot.exists())
+                        if(snapshot.child("unreadMessage").exists())
                             unreadMessage = snapshot.child("unreadMessage").getValue(Int::class.java)!!
                         if(unreadMessage == 0)
                             binding.unreadMessage.isVisible = false

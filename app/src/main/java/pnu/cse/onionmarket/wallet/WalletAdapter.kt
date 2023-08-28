@@ -6,21 +6,33 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.PopupMenu
 import androidx.navigation.findNavController
-import androidx.navigation.fragment.NavHostFragment.Companion.findNavController
-import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.databinding.ItemWalletBinding
 
 class WalletAdapter() : ListAdapter<WalletItem, WalletAdapter.ViewHolder>(differ) {
 
-    var walletList = mutableListOf<WalletItem>()
-
     inner class ViewHolder(private val binding: ItemWalletBinding) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(item: WalletItem) {
+            if(item.walletImage.isNullOrEmpty())
+                Glide.with(binding.walletImage)
+                    .load(R.drawable.app_logo)
+                    .into(binding.walletImage)
+            else
+                Glide.with(binding.walletImage)
+                    .load(item.walletImage)
+                    .into(binding.walletImage)
+
             binding.walletName.text = item.walletName
 
             val priceWithoutCommas = item.walletMoney.toString()
@@ -58,7 +70,7 @@ class WalletAdapter() : ListAdapter<WalletItem, WalletAdapter.ViewHolder>(differ
                                 .setMessage("정말로 지갑을 삭제하시겠습니까?")
                                 .setPositiveButton("삭제",
                                     DialogInterface.OnClickListener { dialog, id ->
-                                        walletList.remove(item)
+                                        Firebase.database.reference.child("Wallets").child(item.walletId!!).removeValue()
                                         notifyItemRemoved(position)
                                     })
                                 .setNegativeButton("취소",
@@ -79,7 +91,7 @@ class WalletAdapter() : ListAdapter<WalletItem, WalletAdapter.ViewHolder>(differ
     companion object {
         val differ = object : DiffUtil.ItemCallback<WalletItem>() {
             override fun areItemsTheSame(oldItem: WalletItem, newItem: WalletItem): Boolean {
-                return oldItem.walletAddress == newItem.walletAddress
+                return oldItem.walletId == newItem.walletId
             }
 
             override fun areContentsTheSame(oldItem: WalletItem, newItem: WalletItem): Boolean {
@@ -100,11 +112,11 @@ class WalletAdapter() : ListAdapter<WalletItem, WalletAdapter.ViewHolder>(differ
     }
 
     override fun getItemCount(): Int {
-        return walletList.size
+        return currentList.size
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(walletList[position])
+        holder.bind(currentList[position])
     }
 
 }

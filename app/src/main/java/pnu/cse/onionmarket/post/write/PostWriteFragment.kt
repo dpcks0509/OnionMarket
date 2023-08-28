@@ -13,7 +13,6 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
@@ -45,10 +44,10 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
     private lateinit var postId: String
     private val writerId = Firebase.auth.currentUser?.uid!!
 
+    private var uploadedUris: MutableList<String> = mutableListOf()
     private var uploadedUrls: MutableList<String> = mutableListOf()
 
     private var editPost: PostItem = PostItem()
-    private var edit = false
 
     private val pickMultipleMedia =
         registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(10)) { uris ->
@@ -101,22 +100,21 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
 
         if(args.postId.isNullOrEmpty()) {
             postId = UUID.randomUUID().toString()
-            edit = false
         }
         // 게시글 수정
         else {
             postId = args.postId
-            edit = true
+            binding.toolbarText.text = "게시글 수정"
 
             Firebase.database.reference.child("Posts").child(postId).addListenerForSingleValueEvent(object: ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     editPost = snapshot.getValue(PostItem::class.java)!!
 
-                    uploadedUrls.clear()
+                    uploadedUris.clear()
 
-                    val imageUris = editPost.postImagesUrl!!.map { Uri.parse(it) }
+                    val imageUris = editPost.postImagesUri!!.map { Uri.parse(it) }
 
-                    val editImageItems = editPost.postImagesUrl!!.mapIndexed{ index, imageUrl ->
+                    val editImageItems = editPost.postImagesUri!!.mapIndexed{ index, imageUrl ->
                         WriteImageItem(UUID.randomUUID().toString(), imageUrl)
                     }
 
@@ -189,10 +187,10 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
 
                 uploadImages(imageUris,
                     successHandler = {
-                        uploadPost(it)
+                        uploadPost(it, uploadedUrls)
                     },
                     errorHandler = {
-                        Toast.makeText(context, "이미지 업로드에 실패하였습니다.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "갤러리에 존재하는 이미지만 업로드할 수 있습니다.", Toast.LENGTH_SHORT).show()
                         hideProgress()
                     })
             } else {
@@ -215,7 +213,7 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
 
         fun uploadNextImage(index: Int) {
             if (index >= uris.size) {
-                successHandler(uploadedUrls)
+                successHandler(uploadedUris)
                 return
             }
 
@@ -226,11 +224,10 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
                 .putFile(uri)
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
-                        task.result?.storage?.downloadUrl?.addOnSuccessListener { downloadUri ->
-                            uploadedUrls.add(downloadUri.toString())
+                        task.result?.storage?.downloadUrl?.addOnSuccessListener {
+                            uploadedUrls.add(it.toString())
+                            uploadedUris.add(uri.toString())
                             uploadNextImage(index + 1)
-                        }?.addOnFailureListener { exception ->
-                            errorHandler(exception)
                         }
                     } else {
                         task.exception?.printStackTrace()
@@ -241,7 +238,7 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
         uploadNextImage(0)
     }
 
-    private fun uploadPost(photoUrl: List<String>) {
+    private fun uploadPost(photoUri: List<String>, uploadedUrls: MutableList<String>) {
         val addPostList = mutableListOf<PostItem>()
 
         Firebase.database.reference.child("Users").child(writerId)
@@ -254,8 +251,9 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
                     val post = PostItem(
                         postId = postId,
                         createdAt = editPost.createdAt ?: System.currentTimeMillis(),
-                        postImagesUrl = photoUrl,
-                        postThumbnailUrl = photoUrl[0],
+                        postImagesUri = photoUri,
+                        postImagesUrl = uploadedUrls,
+                        postThumbnailUrl = uploadedUrls[0],
                         postTitle = binding.writePostTitle.text.toString(),
                         postPrice = binding.writePostPrice.text.toString(),
                         postContent = binding.writePostContent.text.toString(),
@@ -263,7 +261,9 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
                         writerId = writerId,
                         writerNickname = writerNickname,
                         writerPhone = writerPhone,
-                        writerStar = writerStar
+                        writerStar = writerStar,
+                        buyerId = "",
+                        reviewWrite = false
                     )
 
                     Firebase.database.reference.child("Posts").child(postId).setValue(post)

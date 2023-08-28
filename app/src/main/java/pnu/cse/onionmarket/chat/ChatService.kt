@@ -22,8 +22,8 @@ class ChatService: FirebaseMessagingService() {
 
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(mChannel)
-
         val data = message.data
+        val title = data["title"] ?: ""
         val body = data["body"] ?: ""
         val chatRoomId = data["chatRoomId"]
         val otherUserId = data["otherUserId"]
@@ -37,7 +37,7 @@ class ChatService: FirebaseMessagingService() {
 
         val notificationBuilder = NotificationCompat.Builder(applicationContext, getString(R.string.default_notification_channel_id))
             .setSmallIcon(R.drawable.app_logo)
-            .setContentTitle(getString(R.string.app_name))
+            .setContentTitle(title)
             .setContentText(body)
             .setContentIntent(pendingIntent)
 

@@ -9,7 +9,9 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.PopupMenu
+import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
@@ -22,6 +24,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
+import com.google.firebase.database.ktx.getValue
 import com.google.firebase.database.ktx.snapshots
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
@@ -33,6 +36,8 @@ import pnu.cse.onionmarket.chat.ChatItem
 import pnu.cse.onionmarket.databinding.FragmentPostDetailBinding
 import pnu.cse.onionmarket.home.HomeFragmentDirections
 import pnu.cse.onionmarket.post.PostItem
+import pnu.cse.onionmarket.profile.ProfileFragmentDirections
+import pnu.cse.onionmarket.wallet.WalletItem
 import java.util.UUID
 
 class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
@@ -61,9 +66,10 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
         val postId = args.postId
         val userId = Firebase.auth.currentUser?.uid
 
+
+
         if (userId == writerId) {
             binding.editButton.visibility = View.VISIBLE
-            binding.postStatus.visibility = View.VISIBLE
             binding.safePaymentButton.visibility = View.GONE
 
             binding.chatButton.text = "나의채팅"
@@ -71,14 +77,39 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                 findNavController().navigate(R.id.action_postDetailFragment_to_chatFragment)
             }
         } else {
-            binding.editButton.visibility = View.GONE
-            binding.postStatus.visibility = View.GONE
+            binding.editButton.visibility = View.INVISIBLE
             binding.safePaymentButton.visibility = View.VISIBLE
 
+            var walletExist = false
+            Firebase.database.reference.child("Wallets").addValueEventListener(object: ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+
+                    snapshot.children.forEach {
+                        val wallet = it.getValue(WalletItem::class.java)
+                        wallet ?: return
+                        if(wallet.userId == userId) {
+                            walletExist = true
+                            return@forEach
+                        }
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {}
+
+            })
+
             binding.safePaymentButton.setOnClickListener {
-                val action = PostDetailFragmentDirections.actionPostDetailFragmentToSafePaymentFragment(
-                    postId = postId
-                )
+
+                if(!walletExist) {
+                    Toast.makeText(context,"안전결제에 필요한\n전자지갑을 먼저 등록해주세요.", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                val action =
+                    PostDetailFragmentDirections.actionPostDetailFragmentToSafePaymentFragment(
+                        postId = postId,
+                        writerId = writerId
+                    )
                 findNavController().navigate(action)
             }
 
@@ -111,7 +142,7 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                                     val newChatRoom = ChatItem(
                                         chatRoomId = chatRoomId,
                                         otherUserId = post.writerId,
-                                        otherUserProfile = R.drawable.app_logo,
+                                        otherUserProfile = post.writerProfileImage,
                                         otherUserName = post.writerNickname,
                                     )
                                     chatRoomDB.setValue(newChatRoom)
@@ -130,6 +161,8 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                 }
             }
         }
+
+
 
         Firebase.database.reference.child("Posts").child(postId)
             .addValueEventListener(object : ValueEventListener {
@@ -207,6 +240,7 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
 
                     binding.postContent.text =
                         snapshot.child("postContent").getValue(String::class.java)
+
                     binding.postStatus.apply {
                         if (snapshot.child("postStatus").getValue(Boolean::class.java) == true) {
                             text = "판매중"
@@ -219,19 +253,92 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                             text = "판매완료"
                             backgroundTintList =
                                 ContextCompat.getColorStateList(binding.root.context, R.color.gray)
+                            binding.safePaymentButton.backgroundTintList = ContextCompat.getColorStateList(binding.root.context, R.color.light_gray)
+                            binding.safePaymentButton.isClickable = false
+                            binding.chatButton.backgroundTintList = ContextCompat.getColorStateList(binding.root.context, R.color.light_gray)
+                            binding.chatButton.isClickable = false
+
+                            if(userId == writerId) {
+                                binding.waybillButton.visibility = View.VISIBLE
+
+                                binding.waybillButton.setOnClickListener {
+                                    val action = PostDetailFragmentDirections.actionPostDetailFragmentToWaybillFragment(
+                                        postId = postId,
+                                        writerId = writerId
+                                    )
+                                    findNavController().navigate(action)
+                                }
+                            } else {
+                                binding.waybillButton.visibility = View.GONE
+                            }
                         }
                     }
 
+                    if(snapshot.child("buyerId").exists()) {
+                        if(userId == snapshot.child("buyerId").getValue(String::class.java)) {
+                            binding.writeReview.visibility = View.VISIBLE
+
+                            binding.writeReview.setOnClickListener {
+                                val action =
+                                    PostDetailFragmentDirections.actionPostDetailFragmentToReviewWriteFragment(
+                                        profileUserId = writerId,
+                                        postId = postId
+                                    )
+                                findNavController().navigate(action)
+                            }
+                        } else {
+                            binding.writeReview.visibility = View.INVISIBLE
+                        }
+                    }
+
+                    if(snapshot.child("reviewWrite").getValue(Boolean::class.java) == true) {
+                        binding.writeReview.apply {
+                            isClickable = false
+                            val lightGrayColor = ContextCompat.getColorStateList(context, R.color.light_gray)
+                            compoundDrawableTintList = lightGrayColor
+                            setTextColor(lightGrayColor)
+                        }
+                    }
                 }
 
                 override fun onCancelled(error: DatabaseError) {}
             })
 
+        Firebase.database.reference.child("Users").child(writerId)
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if(snapshot.child("userProfileImage").exists()) {
+                        val userImageUri =
+                            snapshot.child("userProfileImage").getValue(String::class.java)!!
+
+                        Glide.with(binding.writerImage)
+                            .load(userImageUri)
+                            .into(binding.writerImage)
+                    }
+
+                    binding.writerStar.text =
+                        snapshot.child("userStar").getValue(Double::class.java).toString()
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                }
+
+            })
+
+
         binding.backButton.setOnClickListener {
             findNavController().navigate(R.id.homeFragment)
         }
 
-        binding.writerInfo.setOnClickListener {
+        binding.writerImage.setOnClickListener {
+            val action = PostDetailFragmentDirections.actionPostDetailFragmentToProfileFragment(
+                writerId = writerId,
+                postId = postId
+            )
+            findNavController().navigate(action)
+        }
+
+        binding.writerName.setOnClickListener {
             val action = PostDetailFragmentDirections.actionPostDetailFragmentToProfileFragment(
                 writerId = writerId,
                 postId = postId

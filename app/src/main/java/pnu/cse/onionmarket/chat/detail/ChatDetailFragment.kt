@@ -1,6 +1,7 @@
 package pnu.cse.onionmarket.chat.detail
 
 import android.app.AlertDialog
+import android.app.NotificationManager
 import android.content.DialogInterface
 import android.os.Bundle
 import android.util.Log
@@ -8,6 +9,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.PopupMenu
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
@@ -38,26 +41,25 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
     private val chatDetailItemList = mutableListOf<ChatDetailItem>()
     private var chatRoomId: String = ""
     private var otherUserId: String = ""
+    private var otherUserName: String = ""
     private var otherUserToken: String = ""
+    private var otherUserProfileImage: String = ""
     private var myUserId: String = ""
     private var myUserName: String = ""
+    private var myUserProfileImage: String = ""
 
-    private val args: ChatDetailFragmentArgs by navArgs()
 
     companion object {
         var unreadMessage: Int = 0
     }
 
+    private val args: ChatDetailFragmentArgs by navArgs()
+
     override fun onStop() {
         super.onStop()
 
-        ChatDetailFragment.unreadMessage = 0
-
-        val updates: MutableMap<String, Any> = hashMapOf(
-            "ChatRooms/$myUserId/${otherUserId}/unreadMessage" to ChatDetailFragment.unreadMessage
-        )
-
-        Firebase.database.reference.updateChildren(updates)
+        Firebase.database.reference.child("ChatRooms").child(myUserId).child(otherUserId)
+            .child("unreadMessage").setValue(0)
     }
 
     override fun onResume() {
@@ -65,8 +67,6 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
 
         val mainActivity = activity as MainActivity
         mainActivity.hideBottomNavigation(true)
-
-
     }
 
     override fun onPause() {
@@ -80,6 +80,10 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
         super.onViewCreated(view, savedInstanceState)
         binding = FragmentChatDetailBinding.bind(view)
 
+        val notificationManager =
+            requireContext().getSystemService(AppCompatActivity.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.cancel(0)
+
         chatDetailAdapter = ChatDetailAdapter()
         linearLayoutManager = LinearLayoutManager(context)
 
@@ -91,11 +95,7 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
         chatDetailAdapter.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
             override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
                 super.onItemRangeInserted(positionStart, itemCount)
-                linearLayoutManager.smoothScrollToPosition(
-                    binding.chatRecyclerView,
-                    null,
-                    chatDetailAdapter.itemCount
-                )
+                binding.chatRecyclerView.scrollToPosition(chatDetailAdapter.itemCount - 1)
             }
         })
 
@@ -107,12 +107,25 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
             .addOnSuccessListener {
                 val myUserItem = it.getValue(UserItem::class.java)
                 myUserName = myUserItem?.userNickname ?: ""
+                myUserProfileImage = myUserItem?.userProfileImage ?: ""
 
                 getOtherUserData()
             }
 
+        binding.nickname.setOnClickListener {
+            val action = ChatDetailFragmentDirections.actionChatDetailFragmentToProfileFragment(
+                writerId = otherUserId,
+                postId = ""
+            )
+            findNavController().navigate(action)
+        }
+
         binding.backButton.setOnClickListener {
             findNavController().popBackStack()
+
+            val notificationManager =
+                requireContext().getSystemService(AppCompatActivity.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.cancel(0)
 
             Firebase.database.reference.child("Chats").child(chatRoomId)
                 .addValueEventListener(object : ValueEventListener {
@@ -126,49 +139,30 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
                 })
         }
 
-        binding.moreButton.setOnClickListener {
-            var popupMenu = PopupMenu(context, it)
-
-            popupMenu.menuInflater.inflate(R.menu.menu_chat, popupMenu.menu)
-            popupMenu.show()
-            popupMenu.setOnMenuItemClickListener {
-                when (it.itemId) {
-                    R.id.chat_delete_button -> {
-                        val builder = AlertDialog.Builder(context)
-                        builder
-                            .setTitle("채팅방 나기기")
-                            .setMessage("채팅방을 나가시겠습니까?")
-                            .setPositiveButton("나가기",
-                                DialogInterface.OnClickListener { dialog, id ->
-                                    Firebase.database.reference.child("ChatRooms").child(myUserId)
-                                        .child(otherUserId).removeValue()
-                                    Firebase.database.reference.child("ChatRooms")
-                                        .child(otherUserId).child(myUserId).removeValue()
-                                    Firebase.database.reference.child("Chats").child(chatRoomId)
-                                        .removeValue()
-                                    findNavController().popBackStack()
-                                })
-                            .setNegativeButton("취소",
-                                DialogInterface.OnClickListener { dialog, id -> })
-
-                        builder.create()
-                        builder.show()
-                    }
+        Firebase.database.reference.child("ChatRooms").child(otherUserId).child(myUserId)
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists())
+                        unreadMessage = snapshot.child("unreadMessage").getValue(Int::class.java)!!
                 }
-                false
-            }
-        }
+
+                override fun onCancelled(error: DatabaseError) {
+                }
+            })
 
         binding.sendButton.setOnClickListener {
+
             val message = binding.messageEditText.text.toString()
 
             if (message.isEmpty())
                 return@setOnClickListener
+            unreadMessage += 1
+
 
             val newChatItem = ChatDetailItem(
                 message = message,
                 userId = myUserId,
-                userProfile = R.drawable.app_logo
+                userProfile = myUserProfileImage
             )
 
             Firebase.database.reference.child("Chats").child(chatRoomId).push().apply {
@@ -178,29 +172,19 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
 
             chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
 
-
-            Firebase.database.reference.child("ChatRooms").child(otherUserId).child(myUserId)
-                .addValueEventListener(object : ValueEventListener {
-                    override fun onDataChange(snapshot: DataSnapshot) {
-                        if (snapshot.exists())
-                            unreadMessage = snapshot.child("unreadMessage").getValue(Int::class.java)!!
-                    }
-
-                    override fun onCancelled(error: DatabaseError) {
-
-                    }
-
-                })
-            unreadMessage += 1
+            val lastMessageTime = System.currentTimeMillis()
 
             val updates: MutableMap<String, Any> = hashMapOf(
                 "ChatRooms/$myUserId/$otherUserId/lastMessage" to message,
+                "ChatRooms/$myUserId/$otherUserId/lastMessageTime" to lastMessageTime,
+                "ChatRooms/$myUserId/$otherUserId/otherUserProfile" to otherUserProfileImage,
                 "ChatRooms/$otherUserId/$myUserId/lastMessage" to message,
                 "ChatRooms/$otherUserId/$myUserId/chatRoomId" to chatRoomId,
                 "ChatRooms/$otherUserId/$myUserId/otherUserId" to myUserId,
                 "ChatRooms/$otherUserId/$myUserId/otherUserName" to myUserName,
-                "ChatRooms/$otherUserId/$myUserId/otherUserProfile" to R.drawable.app_logo,
-                "ChatRooms/$otherUserId/$myUserId/unreadMessage" to unreadMessage
+                "ChatRooms/$otherUserId/$myUserId/otherUserProfile" to myUserProfileImage,
+                "ChatRooms/$otherUserId/$myUserId/unreadMessage" to unreadMessage,
+                "ChatRooms/$otherUserId/$myUserId/lastMessageTime" to lastMessageTime
             )
 
             Firebase.database.reference.updateChildren(updates)
@@ -208,7 +192,7 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
             val client = OkHttpClient()
             val root = JSONObject()
             val notification = JSONObject()
-            notification.put("title", getString(R.string.app_name))
+            notification.put("title", myUserName)
             notification.put("body", message)
             notification.put("chatRoomId", chatRoomId)
             notification.put("otherUserId", myUserId)
@@ -274,7 +258,9 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
             .addOnSuccessListener {
                 val otherUserItem = it.getValue(UserItem::class.java)
                 chatDetailAdapter.otherUserItem = otherUserItem
+                otherUserName = otherUserItem?.userNickname.toString()
                 otherUserToken = otherUserItem?.userToken.orEmpty()
+                otherUserProfileImage = otherUserItem?.userProfileImage.orEmpty()
                 binding.nickname.text = otherUserItem?.userNickname
 
                 getChatData()

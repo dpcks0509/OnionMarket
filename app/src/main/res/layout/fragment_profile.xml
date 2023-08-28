@@ -46,7 +46,7 @@
     <View
         android:id="@+id/divide_line"
         android:layout_width="match_parent"
-        android:layout_height="1dp"
+        android:layout_height="3dp"
         android:background="@color/divider_color"
         app:layout_constraintTop_toBottomOf="@id/toolbar" />
 
@@ -101,8 +101,8 @@
     <View
         android:id="@+id/divider"
         android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#ACACAC"
+        android:layout_height="3dp"
+        android:background="@color/divider_color"
         app:layout_constraintBottom_toBottomOf="@id/userInfo" />
 
     <TextView
@@ -115,8 +115,10 @@
         android:layout_marginBottom="10dp"
         android:clickable="true"
         android:focusable="true"
+        android:foreground="?android:attr/selectableItemBackground"
         android:text="판매상품"
-        android:textSize="18sp"
+        android:textColor="@color/gray"
+        android:textSize="20sp"
         app:layout_constraintStart_toStartOf="@id/userInfo"
         app:layout_constraintTop_toBottomOf="@id/divider" />
 
@@ -129,10 +131,14 @@
         android:layout_marginBottom="10dp"
         android:clickable="true"
         android:focusable="true"
-        android:text="상점후기"
-        android:textSize="18sp"
+        android:foreground="?android:attr/selectableItemBackground"
+        android:text="상점리뷰"
+        android:textColor="@color/gray"
+        android:textSize="20sp"
         app:layout_constraintStart_toEndOf="@id/sellingPost"
         app:layout_constraintTop_toBottomOf="@id/divider" />
+
+
 
     <FrameLayout
         android:id="@+id/myPageFrameLayout"
@@ -148,20 +154,20 @@
         android:id="@+id/profileChatButton"
         android:layout_width="0dp"
         android:layout_height="50dp"
-        android:clickable="true"
-        android:focusable="true"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:foreground="?android:attr/selectableItemBackground"
+        android:layout_margin="15dp"
         android:background="@drawable/button_radius"
         android:backgroundTint="@color/main_color"
-        android:layout_margin="15dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?android:attr/selectableItemBackground"
+        android:gravity="center"
         android:text="채팅하기"
         android:textColor="@color/white"
         android:textSize="22sp"
         android:textStyle="bold"
-        android:gravity="center"
-        app:layout_constraintTop_toBottomOf="@id/myPageFrameLayout"
-        app:layout_constraintBottom_toBottomOf="parent"/>
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/myPageFrameLayout" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -21,8 +21,7 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
         super.onViewCreated(view, savedInstanceState)
         binding = FragmentSearchBinding.bind(view)
 
-
-        searchAdapter = SearchAdapter {
+        searchAdapter = SearchAdapter(binding.noSearch) {
             val searchQuery = it.searchedText.toString().trim()
             val action = SearchFragmentDirections.actionSearchFragmentToHomeFragment(
                 searchQuery = searchQuery,
@@ -32,7 +31,7 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
         }
 
         binding.searchRecyclerView.apply {
-            layoutManager = LinearLayoutManager(context)
+            layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
             adapter = searchAdapter
             setHasFixedSize(true)
             addItemDecoration(DividerItemDecoration(context, LinearLayout.VERTICAL))
