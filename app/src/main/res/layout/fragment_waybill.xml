@@ -28,7 +28,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:paddingRight="48dp"
-            android:text="거래정보"
+            android:text="판매정보"
             android:textColor="@color/black"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -188,7 +188,7 @@
 
 
             <TextView
-                android:id="@+id/detail_text"
+                android:id="@+id/waybill_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
@@ -199,6 +199,19 @@
                 app:layout_constraintStart_toStartOf="@id/post_info"
                 app:layout_constraintTop_toBottomOf="@+id/destination_info" />
 
+            <ImageButton
+                android:id="@+id/waybill_tooltip"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_gravity="center"
+                android:layout_marginStart="5dp"
+                android:layout_marginTop="2dp"
+                app:layout_constraintStart_toEndOf="@id/waybill_text"
+                app:layout_constraintTop_toTopOf="@id/waybill_text"
+                app:layout_constraintBottom_toBottomOf="@id/waybill_text"
+                android:backgroundTint="@color/white"
+                android:src="@drawable/baseline_help_outline_24" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -207,7 +220,7 @@
                 android:backgroundTint="@color/divider_color"
                 android:orientation="vertical"
                 android:padding="10dp"
-                app:layout_constraintTop_toBottomOf="@id/detail_text">
+                app:layout_constraintTop_toBottomOf="@id/waybill_text">
 
                 <Spinner
                     android:id="@+id/waybill_company"
@@ -253,6 +266,7 @@
         android:foreground="?android:attr/selectableItemBackground"
         android:gravity="center"
         android:text="등록하기"
+        android:visibility="visible"
         android:textColor="@color/white"
         android:textSize="22sp"
         android:textStyle="bold"

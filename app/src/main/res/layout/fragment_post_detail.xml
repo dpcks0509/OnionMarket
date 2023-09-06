@@ -275,7 +275,7 @@
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground"
             android:gravity="center"
-            android:text="거래정보"
+            android:text="판매정보"
             android:textColor="@color/white"
             android:textSize="20sp"
             android:textStyle="bold"

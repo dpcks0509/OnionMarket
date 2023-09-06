@@ -6,6 +6,7 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
@@ -17,6 +18,10 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import com.skydoves.balloon.ArrowPositionRules
+import com.skydoves.balloon.Balloon
+import com.skydoves.balloon.BalloonAnimation
+import com.skydoves.balloon.BalloonSizeSpec
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -29,6 +34,7 @@ import pnu.cse.onionmarket.chat.detail.ChatDetailAdapter
 import pnu.cse.onionmarket.chat.detail.ChatDetailFragment
 import pnu.cse.onionmarket.chat.detail.ChatDetailItem
 import pnu.cse.onionmarket.databinding.FragmentWaybillBinding
+
 import pnu.cse.onionmarket.payment.transaction.TransactionAdapter
 import pnu.cse.onionmarket.payment.transaction.TransactionItem
 import pnu.cse.onionmarket.post.PostItem
@@ -51,6 +57,7 @@ class WaybillFragment : Fragment(R.layout.fragment_waybill) {
     private var myUserId: String = ""
     private var myUserName: String = ""
     private var myUserProfileImage: String = ""
+    private var transactionId: String = ""
 
     override fun onResume() {
         super.onResume()
@@ -97,6 +104,28 @@ class WaybillFragment : Fragment(R.layout.fragment_waybill) {
                 override fun onNothingSelected(parent: AdapterView<*>?) {
                 }
             }
+
+        binding.waybillTooltip.setOnClickListener {
+            // 툴팁
+            val balloon = Balloon.Builder(requireContext())
+                .setWidth(BalloonSizeSpec.WRAP)
+                .setHeight(BalloonSizeSpec.WRAP)
+                .setText("배송지로 택배 배송 후 운송장번호를 등록해주세요.\n" +
+                        "24시간 이내에 등록하지 않을시, 결제가 취소됩니다.")
+                .setTextColorResource(R.color.white)
+                .setTextSize(15f)
+                .setArrowPositionRules(ArrowPositionRules.ALIGN_ANCHOR)
+                .setArrowSize(10)
+                .setArrowPosition(0.5f)
+                .setPadding(12)
+                .setCornerRadius(8f)
+                .setBackgroundColorResource(R.color.black)
+                .setBalloonAnimation(BalloonAnimation.ELASTIC)
+                .setLifecycleOwner(viewLifecycleOwner)
+                .build()
+
+            balloon.showAlignBottom(binding.waybillTooltip)
+        }
 
         binding.backButton.setOnClickListener {
             findNavController().popBackStack()
@@ -151,9 +180,26 @@ class WaybillFragment : Fragment(R.layout.fragment_waybill) {
                     val transaction = it.getValue(TransactionItem::class.java)
                     transaction ?: return
                     if(transaction.postId == postId) {
+                        transactionId = transaction.transactionId!!
                         binding.name.setText(transaction.name)
                         binding.phone.setText(transaction.phone)
                         binding.address.setText(transaction.address)
+
+                        if(!transaction.waybillNumber.isNullOrEmpty()) {
+                            binding.submitButton.visibility = View.GONE
+                            binding.waybillCompany.apply {
+                                isClickable = false
+                                isFocusable = false
+                                isEnabled = false
+                                setSelection(transaction.waybillCompanyPosition!!)
+                            }
+
+                            binding.waybillNumber.apply {
+                                isClickable = false
+                                isFocusable = false
+                                setText(transaction.waybillNumber)
+                            }
+                        }
                     }
                 }
             }
@@ -195,8 +241,8 @@ class WaybillFragment : Fragment(R.layout.fragment_waybill) {
                         "택배사 : ${company}\n" +
                         "운송장 번호 : ${binding.waybillNumber.text}\n\n" +
                         " 택배 도착후 3일 이내에\n" +
-                        " 구매완료 버튼을 누르지 않을시\n" +
-                        " 자동으로 결제가 됩니다."
+                        " 구매확정 버튼을 누르지 않을시\n" +
+                        " 자동으로 결제가 완료됩니다."
 
                 val newChatItem = ChatDetailItem(
                     message = message,
@@ -232,7 +278,11 @@ class WaybillFragment : Fragment(R.layout.fragment_waybill) {
                     "ChatRooms/$otherUserId/$userId/otherUserName" to myUserName,
                     "ChatRooms/$otherUserId/$userId/otherUserProfile" to myUserProfileImage,
                     "ChatRooms/$otherUserId/$userId/unreadMessage" to ChatDetailFragment.unreadMessage,
-                    "ChatRooms/$otherUserId/$userId/lastMessageTime" to lastMessageTime
+                    "ChatRooms/$otherUserId/$userId/lastMessageTime" to lastMessageTime,
+                    "Transactions/$transactionId/waybillCompanyPosition" to companyPosition,
+                    "Transactions/$transactionId/waybillCompany" to company,
+                    "Transactions/$transactionId/waybillNumber" to binding.waybillNumber.text.toString()
+
                 )
 
                 Firebase.database.reference.updateChildren(updates)

@@ -44,6 +44,8 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
     private lateinit var binding: FragmentPostDetailBinding
     private val args: PostDetailFragmentArgs by navArgs()
 
+    private var buyerId = ""
+
     override fun onResume() {
         super.onResume()
 
@@ -81,27 +83,29 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
             binding.safePaymentButton.visibility = View.VISIBLE
 
             var walletExist = false
-            Firebase.database.reference.child("Wallets").addValueEventListener(object: ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
+            Firebase.database.reference.child("Wallets")
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
 
-                    snapshot.children.forEach {
-                        val wallet = it.getValue(WalletItem::class.java)
-                        wallet ?: return
-                        if(wallet.userId == userId) {
-                            walletExist = true
-                            return@forEach
+                        snapshot.children.forEach {
+                            val wallet = it.getValue(WalletItem::class.java)
+                            wallet ?: return
+                            if (wallet.userId == userId) {
+                                walletExist = true
+                                return@forEach
+                            }
                         }
                     }
-                }
 
-                override fun onCancelled(error: DatabaseError) {}
+                    override fun onCancelled(error: DatabaseError) {}
 
-            })
+                })
 
             binding.safePaymentButton.setOnClickListener {
 
-                if(!walletExist) {
-                    Toast.makeText(context,"안전결제에 필요한\n전자지갑을 먼저 등록해주세요.", Toast.LENGTH_SHORT).show()
+                if (!walletExist) {
+                    Toast.makeText(context, "안전결제에 필요한\n전자지갑을 먼저 등록해주세요.", Toast.LENGTH_SHORT)
+                        .show()
                     return@setOnClickListener
                 }
 
@@ -253,19 +257,29 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                             text = "판매완료"
                             backgroundTintList =
                                 ContextCompat.getColorStateList(binding.root.context, R.color.gray)
-                            binding.safePaymentButton.backgroundTintList = ContextCompat.getColorStateList(binding.root.context, R.color.light_gray)
-                            binding.safePaymentButton.isClickable = false
-                            binding.chatButton.backgroundTintList = ContextCompat.getColorStateList(binding.root.context, R.color.light_gray)
+                            binding.safePaymentButton.text = "구매정보"
+                            binding.chatButton.backgroundTintList = ContextCompat.getColorStateList(
+                                binding.root.context,
+                                R.color.light_gray
+                            )
                             binding.chatButton.isClickable = false
 
-                            if(userId == writerId) {
+                            if (userId == writerId) {
+                                binding.chatButton.backgroundTintList =
+                                    ContextCompat.getColorStateList(
+                                        binding.root.context,
+                                        R.color.main_color
+                                    )
+                                binding.chatButton.isClickable = true
+
                                 binding.waybillButton.visibility = View.VISIBLE
 
                                 binding.waybillButton.setOnClickListener {
-                                    val action = PostDetailFragmentDirections.actionPostDetailFragmentToWaybillFragment(
-                                        postId = postId,
-                                        writerId = writerId
-                                    )
+                                    val action =
+                                        PostDetailFragmentDirections.actionPostDetailFragmentToWaybillFragment(
+                                            postId = postId,
+                                            writerId = writerId
+                                        )
                                     findNavController().navigate(action)
                                 }
                             } else {
@@ -274,8 +288,16 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                         }
                     }
 
-                    if(snapshot.child("buyerId").exists()) {
-                        if(userId == snapshot.child("buyerId").getValue(String::class.java)) {
+                    if (snapshot.child("buyerId").exists()) {
+                        buyerId = snapshot.child("buyerId").getValue(String::class.java)!!
+                        if (userId == buyerId) {
+                            binding.chatButton.backgroundTintList = ContextCompat.getColorStateList(
+                                binding.root.context,
+                                R.color.main_color
+                            )
+                            binding.chatButton.isClickable = true
+
+                            binding.safePaymentButton.visibility = View.VISIBLE
                             binding.writeReview.visibility = View.VISIBLE
 
                             binding.writeReview.setOnClickListener {
@@ -288,13 +310,23 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                             }
                         } else {
                             binding.writeReview.visibility = View.INVISIBLE
+
+                            binding.safePaymentButton.apply {
+                                text = "안전결제"
+                                isClickable = false
+                                backgroundTintList = ContextCompat.getColorStateList(
+                                    binding.root.context,
+                                    R.color.light_gray
+                                )
+                            }
                         }
                     }
 
-                    if(snapshot.child("reviewWrite").getValue(Boolean::class.java) == true) {
+                    if (snapshot.child("reviewWrite").getValue(Boolean::class.java) == true) {
                         binding.writeReview.apply {
                             isClickable = false
-                            val lightGrayColor = ContextCompat.getColorStateList(context, R.color.light_gray)
+                            val lightGrayColor =
+                                ContextCompat.getColorStateList(context, R.color.light_gray)
                             compoundDrawableTintList = lightGrayColor
                             setTextColor(lightGrayColor)
                         }
@@ -307,7 +339,7 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
         Firebase.database.reference.child("Users").child(writerId)
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    if(snapshot.child("userProfileImage").exists()) {
+                    if (snapshot.child("userProfileImage").exists()) {
                         val userImageUri =
                             snapshot.child("userProfileImage").getValue(String::class.java)!!
 

@@ -11,5 +11,9 @@ data class TransactionItem(
     var postPrice: String? = null,
     var name: String? = null,
     var phone: String? = null,
-    var address: String? = null
+    var address: String? = null,
+    var waybillCompanyPosition: Int? = null,
+    var waybillCompany: String? = null,
+    var waybillNumber: String? = null,
+    var completePayment: Boolean? = null,
 )

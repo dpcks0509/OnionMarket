@@ -70,7 +70,6 @@ class WalletFragment : Fragment(R.layout.fragment_wallet) {
                     } else {
                         binding.noWallet.visibility = View.GONE
                         binding.transactionText.visibility = View.VISIBLE
-                        binding.noTransaction.visibility = View.VISIBLE
                         binding.divideLine2.visibility = View.VISIBLE
                     }
                 }
@@ -120,7 +119,7 @@ class WalletFragment : Fragment(R.layout.fragment_wallet) {
                 transactionList.sortedByDescending { it.createdAt }
                 transactionAdapter.submitList(transactionList)
 
-                if(transactionAdapter.currentList.isEmpty()) {
+                if(!walletAdapter.currentList.isEmpty() && transactionAdapter.currentList.isEmpty()) {
                     binding.noTransaction.visibility = View.VISIBLE
                 } else {
                     binding.noTransaction.visibility = View.INVISIBLE

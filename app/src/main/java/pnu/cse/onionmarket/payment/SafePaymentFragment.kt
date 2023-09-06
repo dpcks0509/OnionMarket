@@ -1,9 +1,14 @@
 package pnu.cse.onionmarket.payment
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
@@ -38,7 +43,6 @@ import pnu.cse.onionmarket.wallet.WalletItem
 import java.io.IOException
 import java.util.*
 
-
 class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
     private lateinit var binding: FragmentSafePaymentBinding
     private val args: SafePaymentFragmentArgs by navArgs()
@@ -58,6 +62,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
     private var myUserId: String = ""
     private var myUserName: String = ""
     private var myUserProfileImage: String = ""
+    private var transactionId: String = ""
 
     override fun onResume() {
         super.onResume()
@@ -71,6 +76,13 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
 
         val mainActivity = activity as MainActivity
         mainActivity.hideBottomNavigation(false)
+    }
+
+    private var mContext: Context? = null
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        mContext = context
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -87,7 +99,6 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
             )
             findNavController().navigate(action)
         }
-
 
 
         val userId = Firebase.auth.currentUser?.uid
@@ -239,6 +250,111 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                 getOtherUserData()
             }
 
+        val itemList =
+            listOf(
+                "택배사", "CJ대한통운", "우체국택배", "한진택배", "롯데택배", "홈픽", "로젠택배", "GS25편의점택배", "CU 편의점택배",
+                "경동택배", "대신택배", "일양로지스"
+            )
+        val adapter = ArrayAdapter(requireContext(), R.layout.item_spinner, itemList)
+        binding.waybillCompany.adapter = adapter
+
+        Firebase.database.reference.child("Transactions")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+
+                    snapshot.children.map {
+                        val transaction = it.getValue(TransactionItem::class.java)
+                        transaction ?: return
+                        if (transaction.postId == postId) {
+                            binding.waybillText.visibility = View.VISIBLE
+                            binding.waybillInfo.visibility = View.VISIBLE
+                            binding.waybillTooltip.visibility = View.VISIBLE
+                            binding.completeButton.visibility = View.VISIBLE
+                            binding.walletText.visibility = View.GONE
+                            binding.walletInfo.visibility = View.GONE
+                            binding.submitButton.visibility = View.INVISIBLE
+
+                            binding.waybillCompany.apply {
+                                isClickable = false
+                                isFocusable = false
+                                isEnabled = false
+                            }
+
+                            binding.waybillNumber.apply {
+                                isClickable = false
+                                isFocusable = false
+                            }
+
+                            binding.waybillTooltip.setOnClickListener {
+                                // 툴팁
+                                val balloon = Balloon.Builder(requireContext())
+                                    .setWidth(BalloonSizeSpec.WRAP)
+                                    .setHeight(BalloonSizeSpec.WRAP)
+                                    .setText(
+                                        "택배 도착후 3일 이내에 구매확정 버튼을 누르지 않을시,\n" +
+                                                "자동으로 결제가 완료됩니다."
+                                    )
+                                    .setTextColorResource(R.color.white)
+                                    .setTextSize(15f)
+                                    .setArrowPositionRules(ArrowPositionRules.ALIGN_ANCHOR)
+                                    .setArrowSize(10)
+                                    .setArrowPosition(0.5f)
+                                    .setPadding(12)
+                                    .setCornerRadius(8f)
+                                    .setBackgroundColorResource(R.color.black)
+                                    .setBalloonAnimation(BalloonAnimation.ELASTIC)
+                                    .setLifecycleOwner(viewLifecycleOwner)
+                                    .build()
+
+                                balloon.showAlignBottom(binding.waybillTooltip)
+                            }
+
+                            transactionId = transaction.transactionId!!
+                            binding.name.apply {
+                                isClickable = false
+                                isFocusable = false
+                                setText(transaction.name)
+                            }
+                            binding.phone.apply {
+                                isClickable = false
+                                isFocusable = false
+                                setText(transaction.phone)
+                            }
+                            binding.address.apply {
+                                isClickable = false
+                                isFocusable = false
+                                setText(transaction.address)
+                            }
+
+
+
+                            if (!transaction.waybillNumber.isNullOrEmpty()) {
+                                binding.toolbarText.text = "구매내역"
+                                binding.waybillCompany.apply {
+                                    isClickable = false
+                                    isFocusable = false
+                                    isEnabled = false
+                                    setSelection(transaction.waybillCompanyPosition!!)
+                                }
+
+                                binding.waybillNumber.apply {
+                                    isClickable = false
+                                    isFocusable = false
+                                    setText(transaction.waybillNumber)
+                                }
+                            }
+
+                            if(transaction.completePayment == true) {
+                                binding.submitButton.visibility = View.GONE
+                                binding.completeButton.visibility = View.GONE
+                            }
+                        }
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {}
+            })
+
 
         binding.submitButton.setOnClickListener {
             val walletMoney =
@@ -258,11 +374,9 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                 Firebase.database.reference.child("ChatRooms").child(userId!!).child(writerId)
 
             chatRoomDB.get().addOnSuccessListener {
-                if (it.value != null) {
+                if(it.value != null) {
                     val chatRoom = it.getValue(ChatItem::class.java)
                     chatRoomId = chatRoom?.chatRoomId!!
-
-
                 } else {
                     chatRoomId = UUID.randomUUID().toString()
                 }
@@ -358,10 +472,15 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                     postPrice = postPrice,
                     name = binding.name.text.toString(),
                     phone = binding.phone.text.toString(),
-                    address = binding.address.text.toString()
+                    address = binding.address.text.toString(),
+                    waybillCompanyPosition = 0,
+                    waybillCompany = "",
+                    waybillNumber = "",
+                    completePayment = false
                 )
 
-                Firebase.database.reference.child("Transactions").child(transactionId).setValue(transaction)
+                Firebase.database.reference.child("Transactions").child(transactionId)
+                    .setValue(transaction)
                     .addOnSuccessListener {
                         val updates: MutableMap<String, Any> = hashMapOf(
                             "Posts/$postId/postStatus" to false,
@@ -404,6 +523,107 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
             balloon.showAlignBottom(binding.chargePriceTooltip)
         }
 
+        binding.completeButton.setOnClickListener {
+            if (binding.waybillNumber.text.isNullOrEmpty()) {
+                Toast.makeText(context, "운송장 정보가 등록된 이후에\n구매확정을 할 수 있습니다.", Toast.LENGTH_SHORT)
+                    .show()
+                return@setOnClickListener
+            }
+
+            val updates: MutableMap<String, Any> = hashMapOf(
+                "Transactions/$transactionId/completePayment" to true
+            )
+            Firebase.database.reference.updateChildren(updates)
+
+            val chatRoomDB =
+                Firebase.database.reference.child("ChatRooms").child(userId!!).child(writerId)
+
+            chatRoomDB.get().addOnSuccessListener {
+                if(it.value != null) {
+                    val chatRoom = it.getValue(ChatItem::class.java)
+                    chatRoomId = chatRoom?.chatRoomId!!
+                } else {
+                    chatRoomId = UUID.randomUUID().toString()
+                }
+                // 메세지 , 알림 보내기
+                val message = "<구매확정 알림>\n" +
+                        "상품명 : [${binding.postTitle.text}]\n" +
+                        "상품가격 : ${binding.postPrice.text}원\n\n" +
+                        " 판매하신 상품의 거래가 완료되었습니다.\n" +
+                        " 판매금액은 24시간 이내에 정산됩니다."
+
+                val newChatItem = ChatDetailItem(
+                    message = message,
+                    userId = userId,
+                    userProfile = myUserProfileImage
+                )
+
+                Firebase.database.reference.child("Chats").child(chatRoomId).push().apply {
+                    newChatItem.chatId = key
+                    setValue(newChatItem)
+                }
+
+                unreadMessage += 1
+
+                chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
+
+                val lastMessageTime = System.currentTimeMillis()
+
+                val newChatRoom = ChatItem(
+                    chatRoomId = chatRoomId,
+                    otherUserId = otherUserId,
+                    otherUserProfile = otherUserProfileImage,
+                    otherUserName = otherUserName,
+                    lastMessage = message,
+                    lastMessageTime = lastMessageTime
+                )
+                chatRoomDB.setValue(newChatRoom)
+
+                val updates: MutableMap<String, Any> = hashMapOf(
+                    "ChatRooms/$otherUserId/$userId/lastMessage" to message,
+                    "ChatRooms/$otherUserId/$userId/chatRoomId" to chatRoomId,
+                    "ChatRooms/$otherUserId/$userId/otherUserId" to userId,
+                    "ChatRooms/$otherUserId/$userId/otherUserName" to myUserName,
+                    "ChatRooms/$otherUserId/$userId/otherUserProfile" to myUserProfileImage,
+                    "ChatRooms/$otherUserId/$userId/unreadMessage" to unreadMessage,
+                    "ChatRooms/$otherUserId/$userId/lastMessageTime" to lastMessageTime
+                )
+
+                Firebase.database.reference.updateChildren(updates)
+
+                val client = OkHttpClient()
+                val root = JSONObject()
+                val notification = JSONObject()
+                notification.put("title", myUserName)
+                notification.put("body", message)
+                notification.put("chatRoomId", chatRoomId)
+                notification.put("otherUserId", userId)
+
+                root.put("to", otherUserToken)
+                root.put("priority", "high")
+                root.put("data", notification)
+
+                val requestBody =
+                    root.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+                val request =
+                    Request.Builder().post(requestBody).url("https://fcm.googleapis.com/fcm/send")
+                        .header("Authorization", "key=${mContext?.getString(R.string.fcm_server_key)}")
+                        .build()
+                client.newCall(request).enqueue(object : Callback {
+                    override fun onFailure(call: Call, e: IOException) {
+
+                    }
+
+                    override fun onResponse(call: Call, response: Response) {
+                    }
+
+                })
+            }
+
+
+
+            findNavController().popBackStack()
+        }
     }
 
     private fun getChatData() {
