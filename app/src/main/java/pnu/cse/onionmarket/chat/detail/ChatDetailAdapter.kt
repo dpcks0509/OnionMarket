@@ -1,8 +1,10 @@
 package pnu.cse.onionmarket.chat.detail
 
+import android.opengl.Visibility
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.view.isVisible
@@ -10,6 +12,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.google.firebase.auth.ktx.auth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
@@ -23,6 +26,8 @@ class ChatDetailAdapter()
     : ListAdapter<ChatDetailItem, ChatDetailAdapter.ViewHolder>(differ) {
 
     var otherUserItem: UserItem? = null
+
+    private var previousUserId: String? = null
 
     inner class ViewHolder(private val binding: ItemChatDetailBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -54,10 +59,14 @@ class ChatDetailAdapter()
             if(item.userId == otherUserItem?.userId) {
                 binding.profileImage.isVisible = true
                 binding.chatItem.gravity = Gravity.START
+                if(item.userId == previousUserId) {
+                    binding.profileImage.visibility = View.INVISIBLE
+                }
             } else {
                 binding.profileImage.isVisible = false
                 binding.chatItem.gravity = Gravity.END
             }
+            previousUserId = item.userId
         }
     }
 

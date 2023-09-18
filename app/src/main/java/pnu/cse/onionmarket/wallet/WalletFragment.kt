@@ -16,10 +16,15 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.databinding.FragmentWalletBinding
 import pnu.cse.onionmarket.payment.transaction.TransactionAdapter
 import pnu.cse.onionmarket.payment.transaction.TransactionItem
+import pnu.cse.onionmarket.service.RetrofitService
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 
 class WalletFragment : Fragment(R.layout.fragment_wallet) {
@@ -56,9 +61,12 @@ class WalletFragment : Fragment(R.layout.fragment_wallet) {
                     snapshot.children.map {
                         val wallet = it.getValue(WalletItem::class.java)
                         wallet ?: return
-                        if (wallet.userId == userId)
+                        if (wallet.userId == userId) {
                             walletList.add(wallet)
+                        }
+
                     }
+
                     walletList.sortBy { it.createdAt }
                     walletAdapter.submitList(walletList)
 

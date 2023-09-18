@@ -1,17 +1,20 @@
 package pnu.cse.onionmarket.payment
 
+import android.app.AlertDialog
 import android.content.Context
+import android.content.DialogInterface
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.core.content.ContextCompat
-import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.bumptech.glide.Glide
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.database.ChildEventListener
@@ -20,7 +23,13 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.skydoves.balloon.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -36,12 +45,17 @@ import pnu.cse.onionmarket.chat.detail.ChatDetailItem
 import pnu.cse.onionmarket.databinding.FragmentSafePaymentBinding
 import pnu.cse.onionmarket.payment.transaction.TransactionAdapter
 import pnu.cse.onionmarket.payment.transaction.TransactionItem
+import pnu.cse.onionmarket.payment.workmanager.AfterDeliveredWorker
+import pnu.cse.onionmarket.payment.workmanager.WaybillRegistrationWorker
 import pnu.cse.onionmarket.post.PostItem
-import pnu.cse.onionmarket.post.detail.PostDetailFragmentDirections
+import pnu.cse.onionmarket.service.RetrofitService
 import pnu.cse.onionmarket.wallet.WalletFragmentDirections
 import pnu.cse.onionmarket.wallet.WalletItem
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
     private lateinit var binding: FragmentSafePaymentBinding
@@ -62,7 +76,23 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
     private var myUserId: String = ""
     private var myUserName: String = ""
     private var myUserProfileImage: String = ""
+    private var myUserToken: String = ""
     private var transactionId: String = ""
+
+    private var userId: String = ""
+    private var postId: String = ""
+    private var writerId: String = ""
+
+    private val gson : Gson = GsonBuilder()
+        .setLenient()
+        .create()
+
+    private val retrofit = Retrofit.Builder()
+        .baseUrl("http://43.200.253.65:8080")
+        .addConverterFactory(GsonConverterFactory.create(gson))
+        .build()
+
+    private val retrofitService = retrofit.create(RetrofitService::class.java)
 
     override fun onResume() {
         super.onResume()
@@ -101,9 +131,9 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
         }
 
 
-        val userId = Firebase.auth.currentUser?.uid
-        val postId = args.postId
-        val writerId = args.writerId
+        userId = Firebase.auth.currentUser?.uid!!
+        postId = args.postId
+        writerId = args.writerId
 
         var postThumbnailImage = ""
         var postTitle = ""
@@ -140,7 +170,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                     binding.postPrice.text = "${formattedPrice}원"
 
                     val postPrice = post?.postPrice?.toInt()
-                    val chargePrice = postPrice?.floorDiv(100)
+                    val chargePrice = 1000
                     val totalPrice = postPrice?.plus(chargePrice!!)
 
                     priceWithoutCommas = postPrice.toString()
@@ -209,11 +239,51 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                     .into(binding.walletImage)
                             binding.walletName.text = wallet.walletName
 
-                            val postPrice = wallet.walletMoney
-                            val chargePrice = postPrice?.floorDiv(100)
-                            val totalPrice = postPrice?.plus(chargePrice!!)
 
-                            var priceWithoutCommas = postPrice.toString()
+//                            var walletMoney = "0"
+//                            var getMoney = false
+//
+//                            val walletJob = CoroutineScope(Dispatchers.IO).async {
+//                                retrofitService.getWalletMoney(wallet.privateKey!!).execute().let { response ->
+//                                    if (response.isSuccessful) {
+//                                        walletMoney = response.body().toString()
+//                                        getMoney = true
+//                                    }
+//                                }
+//                                getMoney
+//                            }
+//
+//                            runBlocking {
+//                                val walletResult = walletJob.await()
+//
+//                                if (walletResult) {
+//
+//                                    val updates: MutableMap<String, Any> = hashMapOf(
+//                                        "Wallets/${wallet.walletId}/walletMoney" to walletMoney,
+//                                    )
+//
+//                                    Firebase.database.reference.updateChildren(updates)
+//
+//                                    val priceWithoutCommas = walletMoney
+//                                    val formattedPrice = StringBuilder()
+//                                    var commaCounter = 0
+//
+//                                    for (i in priceWithoutCommas.length - 1 downTo 0) {
+//                                        formattedPrice.append(priceWithoutCommas[i])
+//                                        commaCounter++
+//
+//                                        if (commaCounter == 3 && i > 0) {
+//                                            formattedPrice.append(",")
+//                                            commaCounter = 0
+//                                        }
+//                                    }
+//                                    formattedPrice.reverse()
+//                                    binding.walletMoney.text = "$formattedPrice 원"
+//                                }
+//                            }
+
+
+                            var priceWithoutCommas = wallet.walletMoney.toString()
                             var formattedPrice = StringBuilder()
                             var commaCounter = 0
 
@@ -246,6 +316,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                 val myUserItem = it.getValue(UserItem::class.java)
                 myUserName = myUserItem?.userNickname ?: ""
                 myUserProfileImage = myUserItem?.userProfileImage ?: ""
+                myUserToken = myUserItem?.userToken ?: ""
 
                 getOtherUserData()
             }
@@ -262,6 +333,8 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
 
+                    val context = context ?: return
+
                     snapshot.children.map {
                         val transaction = it.getValue(TransactionItem::class.java)
                         transaction ?: return
@@ -269,6 +342,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                             binding.waybillText.visibility = View.VISIBLE
                             binding.waybillInfo.visibility = View.VISIBLE
                             binding.waybillTooltip.visibility = View.VISIBLE
+                            binding.waybillCheckButton.visibility = View.VISIBLE
                             binding.completeButton.visibility = View.VISIBLE
                             binding.walletText.visibility = View.GONE
                             binding.walletInfo.visibility = View.GONE
@@ -283,6 +357,92 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                             binding.waybillNumber.apply {
                                 isClickable = false
                                 isFocusable = false
+                            }
+
+                            transactionId = transaction.transactionId!!
+
+                            if (transaction.deliveryArrived == true) {
+                                binding.waybillCheckButton.apply {
+                                    text = "배송완료"
+                                    isClickable = false
+                                    isFocusable = false
+                                    backgroundTintList = ContextCompat.getColorStateList(
+                                        binding.root.context,
+                                        R.color.light_gray
+                                    )
+                                }
+
+                                val workManager = WorkManager.getInstance(mContext!!)
+                                Log.e("Cancel", " deliveryCheckWorker")
+                                workManager.cancelAllWorkByTag("deliveryCheckWorker-$transactionId")
+
+                                val afterDeliveredWorker =
+                                    OneTimeWorkRequestBuilder<AfterDeliveredWorker>()
+                                        .setInitialDelay(72, TimeUnit.HOURS)
+                                        .build()
+
+                                AfterDeliveredWorker.setData(transactionId)
+
+                                workManager.enqueueUniqueWork("afterDeliveredWorker-$transactionId", ExistingWorkPolicy.KEEP, afterDeliveredWorker)
+
+                            }
+
+                            if (transaction.waybillRegistrationWorker == true) {
+                                val updates: MutableMap<String, Any> = hashMapOf(
+                                    "Transactions/${transactionId}/waybillRegistrationWorker" to false,
+                                )
+
+                                Firebase.database.reference.updateChildren(updates)
+
+                                sendChat(
+                                    message = "<안전결제 취소 알림>\n" +
+                                            "상품명 : [${binding.postTitle.text}]\n\n" +
+                                            " 24시간 이내에 운송장 정보가 등록되지않아,\n" +
+                                            " 자동으로 안전결제가 취소되었습니다."
+                                )
+                            }
+
+                            if (transaction.afterDeliveredWorker == true) {
+                                val updates: MutableMap<String, Any> = hashMapOf(
+                                    "Transactions/${transactionId}/afterDeliveredWorker" to false,
+                                )
+
+                                Firebase.database.reference.updateChildren(updates)
+
+                                sendChat(
+                                    message = "<구매확정 알림>\n" +
+                                            "상품명 : [${binding.postTitle.text}]\n" +
+                                            "상품가격 : ${binding.postPrice.text}원\n\n" +
+                                            " 판매하신 상품의 거래가 완료되었습니다.\n" +
+                                            " 판매금액은 24시간 이내에 정산됩니다."
+                                )
+                            }
+
+                            binding.waybillCheckButton.setOnClickListener {
+
+                                retrofitService.deliveryCheck(
+                                    transaction.waybillCompanyCode!!,
+                                    transaction.waybillNumber!!
+                                ).enqueue(object: retrofit2.Callback<String> {
+                                    override fun onResponse(
+                                        call: retrofit2.Call<String>,
+                                        response: retrofit2.Response<String>
+                                    ) {
+                                        val state = response.body().toString()
+
+                                        if(state == "배송완료") {
+                                            deliveryCheck(true)
+                                        }
+                                    }
+
+                                    override fun onFailure(
+                                        call: retrofit2.Call<String>,
+                                        t: Throwable
+                                    ) {
+                                        Log.e("error",t.toString())
+                                    }
+
+                                })
                             }
 
                             binding.waybillTooltip.setOnClickListener {
@@ -309,7 +469,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                 balloon.showAlignBottom(binding.waybillTooltip)
                             }
 
-                            transactionId = transaction.transactionId!!
+
                             binding.name.apply {
                                 isClickable = false
                                 isFocusable = false
@@ -326,10 +486,9 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                 setText(transaction.address)
                             }
 
-
-
                             if (!transaction.waybillNumber.isNullOrEmpty()) {
-                                binding.toolbarText.text = "구매내역"
+
+                                binding.toolbarText.text = "구매정보"
                                 binding.waybillCompany.apply {
                                     isClickable = false
                                     isFocusable = false
@@ -344,9 +503,14 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                 }
                             }
 
-                            if(transaction.completePayment == true) {
+                            if (transaction.completePayment == true) {
                                 binding.submitButton.visibility = View.GONE
                                 binding.completeButton.visibility = View.GONE
+                                binding.waybillCheckButton.visibility = View.GONE
+
+                                val workManager = WorkManager.getInstance(mContext!!)
+                                Log.e("Cancel", " afterDeliveredWorker")
+                                workManager.cancelAllWorkByTag("afterDeliveredWorker-$transactionId")
                             }
                         }
                     }
@@ -354,7 +518,6 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
 
                 override fun onCancelled(error: DatabaseError) {}
             })
-
 
         binding.submitButton.setOnClickListener {
             val walletMoney =
@@ -370,11 +533,22 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                 return@setOnClickListener
             }
 
+            val waybillRegistrationWorker =
+                OneTimeWorkRequestBuilder<WaybillRegistrationWorker>()
+                    .setInitialDelay(24, TimeUnit.HOURS)
+                    .addTag("waybillRegistrationWorker")
+                    .build()
+
+            WaybillRegistrationWorker.setData(postId, transactionId)
+
+            val workManager = WorkManager.getInstance(mContext!!)
+            workManager.enqueueUniqueWork("waybillRegistrationWorker-$transactionId", ExistingWorkPolicy.KEEP,waybillRegistrationWorker)
+
             val chatRoomDB =
                 Firebase.database.reference.child("ChatRooms").child(userId!!).child(writerId)
 
             chatRoomDB.get().addOnSuccessListener {
-                if(it.value != null) {
+                if (it.value != null) {
                     val chatRoom = it.getValue(ChatItem::class.java)
                     chatRoomId = chatRoom?.chatRoomId!!
                 } else {
@@ -392,21 +566,6 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                         " 24시간 이내에 등록하지 않을시\n" +
                         " 안전결제가 취소됩니다."
 
-                val newChatItem = ChatDetailItem(
-                    message = message,
-                    userId = userId,
-                    userProfile = myUserProfileImage
-                )
-
-                Firebase.database.reference.child("Chats").child(chatRoomId).push().apply {
-                    newChatItem.chatId = key
-                    setValue(newChatItem)
-                }
-
-                unreadMessage += 1
-
-                chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
-
                 val lastMessageTime = System.currentTimeMillis()
 
                 val newChatRoom = ChatItem(
@@ -417,7 +576,42 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                     lastMessage = message,
                     lastMessageTime = lastMessageTime
                 )
-                chatRoomDB.setValue(newChatRoom)
+
+                if(it.value == null)
+                    chatRoomDB.setValue(newChatRoom)
+
+                val newChatItem = ChatDetailItem(
+                    message = message,
+                    userId = userId,
+                    userProfile = myUserProfileImage
+                )
+
+                Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId!!)
+                    .addValueEventListener(object : ValueEventListener {
+                        override fun onDataChange(snapshot: DataSnapshot) {
+                            if (snapshot.exists())
+                                ChatDetailFragment.unreadMessage =
+                                    snapshot.child("unreadMessage").getValue(Int::class.java)!!
+                        }
+
+                        override fun onCancelled(error: DatabaseError) {
+                        }
+                    })
+
+                unreadMessage += 1
+
+                chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
+
+
+                Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId).child("chats").push().apply{
+                    newChatItem.chatId = key
+                    setValue(newChatItem)
+                }
+
+                Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId).child("chats").push().apply{
+                    newChatItem.chatId = key
+                    setValue(newChatItem)
+                }
 
                 val updates: MutableMap<String, Any> = hashMapOf(
                     "ChatRooms/$otherUserId/$userId/lastMessage" to message,
@@ -475,8 +669,13 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                     address = binding.address.text.toString(),
                     waybillCompanyPosition = 0,
                     waybillCompany = "",
+                    waybillCompanyCode = "",
                     waybillNumber = "",
-                    completePayment = false
+                    deliveryArrived = false,
+                    completePayment = false,
+                    waybillRegistrationWorker = false,
+                    deliveryCheckWorker = false,
+                    afterDeliveredWorker = false
                 )
 
                 Firebase.database.reference.child("Transactions").child(transactionId)
@@ -507,7 +706,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
             val balloon = Balloon.Builder(requireContext())
                 .setWidth(BalloonSizeSpec.WRAP)
                 .setHeight(BalloonSizeSpec.WRAP)
-                .setText("발생가능한 최대 수수료는 1%이며,\n거래완료시 수수료 차액은 결제되지 않습니다.")
+                .setText("수수료는 건당 1000원 발생하며,\n거래금액이 클수록 수수료 %가 작아집니다.")
                 .setTextColorResource(R.color.white)
                 .setTextSize(15f)
                 .setArrowPositionRules(ArrowPositionRules.ALIGN_ANCHOR)
@@ -524,111 +723,28 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
         }
 
         binding.completeButton.setOnClickListener {
-            if (binding.waybillNumber.text.isNullOrEmpty()) {
-                Toast.makeText(context, "운송장 정보가 등록된 이후에\n구매확정을 할 수 있습니다.", Toast.LENGTH_SHORT)
-                    .show()
-                return@setOnClickListener
-            }
-
-            val updates: MutableMap<String, Any> = hashMapOf(
-                "Transactions/$transactionId/completePayment" to true
-            )
-            Firebase.database.reference.updateChildren(updates)
-
-            val chatRoomDB =
-                Firebase.database.reference.child("ChatRooms").child(userId!!).child(writerId)
-
-            chatRoomDB.get().addOnSuccessListener {
-                if(it.value != null) {
-                    val chatRoom = it.getValue(ChatItem::class.java)
-                    chatRoomId = chatRoom?.chatRoomId!!
-                } else {
-                    chatRoomId = UUID.randomUUID().toString()
-                }
-                // 메세지 , 알림 보내기
-                val message = "<구매확정 알림>\n" +
-                        "상품명 : [${binding.postTitle.text}]\n" +
-                        "상품가격 : ${binding.postPrice.text}원\n\n" +
-                        " 판매하신 상품의 거래가 완료되었습니다.\n" +
-                        " 판매금액은 24시간 이내에 정산됩니다."
-
-                val newChatItem = ChatDetailItem(
-                    message = message,
-                    userId = userId,
-                    userProfile = myUserProfileImage
+            val builder = AlertDialog.Builder(context)
+            builder
+                .setTitle("구매확정")
+                .setMessage(
+                    "정말로 구매확정하시겠습니까?\n" +
+                            "구매확정이 되면 결제가 완료됩니다."
                 )
+                .setPositiveButton("구매확정",
+                    DialogInterface.OnClickListener { dialog, id ->
+                        completePayment()
+                    })
+                .setNegativeButton("취소",
+                    DialogInterface.OnClickListener { dialog, id -> })
 
-                Firebase.database.reference.child("Chats").child(chatRoomId).push().apply {
-                    newChatItem.chatId = key
-                    setValue(newChatItem)
-                }
+            builder.create()
+            builder.show()
 
-                unreadMessage += 1
-
-                chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
-
-                val lastMessageTime = System.currentTimeMillis()
-
-                val newChatRoom = ChatItem(
-                    chatRoomId = chatRoomId,
-                    otherUserId = otherUserId,
-                    otherUserProfile = otherUserProfileImage,
-                    otherUserName = otherUserName,
-                    lastMessage = message,
-                    lastMessageTime = lastMessageTime
-                )
-                chatRoomDB.setValue(newChatRoom)
-
-                val updates: MutableMap<String, Any> = hashMapOf(
-                    "ChatRooms/$otherUserId/$userId/lastMessage" to message,
-                    "ChatRooms/$otherUserId/$userId/chatRoomId" to chatRoomId,
-                    "ChatRooms/$otherUserId/$userId/otherUserId" to userId,
-                    "ChatRooms/$otherUserId/$userId/otherUserName" to myUserName,
-                    "ChatRooms/$otherUserId/$userId/otherUserProfile" to myUserProfileImage,
-                    "ChatRooms/$otherUserId/$userId/unreadMessage" to unreadMessage,
-                    "ChatRooms/$otherUserId/$userId/lastMessageTime" to lastMessageTime
-                )
-
-                Firebase.database.reference.updateChildren(updates)
-
-                val client = OkHttpClient()
-                val root = JSONObject()
-                val notification = JSONObject()
-                notification.put("title", myUserName)
-                notification.put("body", message)
-                notification.put("chatRoomId", chatRoomId)
-                notification.put("otherUserId", userId)
-
-                root.put("to", otherUserToken)
-                root.put("priority", "high")
-                root.put("data", notification)
-
-                val requestBody =
-                    root.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
-                val request =
-                    Request.Builder().post(requestBody).url("https://fcm.googleapis.com/fcm/send")
-                        .header("Authorization", "key=${mContext?.getString(R.string.fcm_server_key)}")
-                        .build()
-                client.newCall(request).enqueue(object : Callback {
-                    override fun onFailure(call: Call, e: IOException) {
-
-                    }
-
-                    override fun onResponse(call: Call, response: Response) {
-                    }
-
-                })
-            }
-
-
-
-            findNavController().popBackStack()
         }
     }
 
     private fun getChatData() {
-
-        Firebase.database.reference.child("Chats").child(chatRoomId)
+        Firebase.database.reference.child("ChatRooms").child(myUserId).child(otherUserId).child("chats")
             .addChildEventListener(object : ChildEventListener {
                 override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
                     val chatDetailItem = snapshot.getValue(ChatDetailItem::class.java)
@@ -659,6 +775,373 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                 otherUserProfileImage = otherUserItem?.userProfileImage.orEmpty()
                 getChatData()
             }
+    }
+
+    fun deliveryCheck(delivered: Boolean) {
+        if (delivered) {
+            Toast.makeText(
+                context, "택배가 배송이 완료되었습니다.\n" +
+                        "3일 이내에 구매확정 버튼을 눌러주세요.", Toast.LENGTH_SHORT
+            ).show()
+
+            val chatRoomDB =
+                Firebase.database.reference.child("ChatRooms").child(userId!!).child(writerId)
+
+            chatRoomDB.get().addOnSuccessListener {
+                if (it.value != null) {
+                    val chatRoom = it.getValue(ChatItem::class.java)
+                    chatRoomId = chatRoom?.chatRoomId!!
+                } else {
+                    chatRoomId = UUID.randomUUID().toString()
+                }
+                // 메세지 , 알림 보내기
+                val message = "<택배도착 알림>\n" +
+                        "상품명 : [${binding.postTitle.text}]\n\n" +
+                        " 택배가 배송이 완료되었습니다.\n" +
+                        " 3일 이내에 구매확정 버튼을 눌러주세요."
+
+                val lastMessageTime = System.currentTimeMillis()
+
+                val newChatRoom = ChatItem(
+                    chatRoomId = chatRoomId,
+                    otherUserId = otherUserId,
+                    otherUserProfile = otherUserProfileImage,
+                    otherUserName = otherUserName,
+                    lastMessage = message,
+                    lastMessageTime = lastMessageTime
+                )
+
+                if(it.value == null)
+                    chatRoomDB.setValue(newChatRoom)
+
+                val newChatItem = ChatDetailItem(
+                    message = message,
+                    userId = otherUserId,
+                    userProfile = otherUserProfileImage
+                )
+
+                Firebase.database.reference.child("ChatRooms")
+                    .child(userId).child(otherUserId!!)
+                    .addValueEventListener(object : ValueEventListener {
+                        override fun onDataChange(snapshot: DataSnapshot) {
+                            if (snapshot.exists())
+                                ChatDetailFragment.unreadMessage =
+                                    snapshot.child("unreadMessage")
+                                        .getValue(Int::class.java)!!
+                        }
+
+                        override fun onCancelled(error: DatabaseError) {
+                        }
+                    })
+
+                unreadMessage += 1
+
+                chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
+
+                Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId).child("chats").push().apply{
+                    newChatItem.chatId = key
+                    setValue(newChatItem)
+                }
+                Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId).child("chats").push().apply{
+                    newChatItem.chatId = key
+                    setValue(newChatItem)
+                }
+
+                val updates: MutableMap<String, Any> = hashMapOf(
+                    "ChatRooms/$userId/$otherUserId/lastMessage" to message,
+                    "ChatRooms/$userId/$otherUserId/chatRoomId" to chatRoomId,
+                    "ChatRooms/$userId/$otherUserId/otherUserId" to otherUserId,
+                    "ChatRooms/$userId/$otherUserId/otherUserName" to otherUserName,
+                    "ChatRooms/$userId/$otherUserId/otherUserProfile" to otherUserProfileImage,
+                    "ChatRooms/$userId/$otherUserId/unreadMessage" to unreadMessage,
+                    "ChatRooms/$userId/$otherUserId/lastMessageTime" to lastMessageTime
+                )
+
+                Firebase.database.reference.updateChildren(updates)
+
+                val client = OkHttpClient()
+                val root = JSONObject()
+                val notification = JSONObject()
+                notification.put("title", otherUserName)
+                notification.put("body", message)
+                notification.put("chatRoomId", chatRoomId)
+                notification.put("otherUserId", otherUserId)
+
+                root.put("to", myUserToken)
+                root.put("priority", "high")
+                root.put("data", notification)
+
+                val requestBody =
+                    root.toString()
+                        .toRequestBody("application/json; charset=utf-8".toMediaType())
+                val request =
+                    Request.Builder().post(requestBody)
+                        .url("https://fcm.googleapis.com/fcm/send")
+                        .header(
+                            "Authorization",
+                            "key=${getString(R.string.fcm_server_key)}"
+                        )
+                        .build()
+                client.newCall(request).enqueue(object : Callback {
+                    override fun onFailure(call: Call, e: IOException) {
+
+                    }
+
+                    override fun onResponse(
+                        call: Call,
+                        response: Response
+                    ) {
+                    }
+
+                })
+            }
+
+            val updates: MutableMap<String, Any> = hashMapOf(
+                "Transactions/$transactionId/deliveryArrived" to true
+            )
+
+            Firebase.database.reference.updateChildren(updates)
+        } else {
+            Toast.makeText(context, "택배가 아직 배송중입니다.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun completePayment() {
+
+        if (binding.waybillNumber.text.isNullOrEmpty()) {
+            Toast.makeText(
+                context,
+                "운송장 정보가 등록된 이후에\n구매확정을 할 수 있습니다.",
+                Toast.LENGTH_SHORT
+            )
+                .show()
+            return
+        }
+
+        val updates: MutableMap<String, Any> = hashMapOf(
+            "Transactions/$transactionId/completePayment" to true
+        )
+        Firebase.database.reference.updateChildren(updates)
+
+
+        val chatRoomDB =
+            Firebase.database.reference.child("ChatRooms").child(userId!!)
+                .child(writerId)
+
+        chatRoomDB.get().addOnSuccessListener {
+            if (it.value != null) {
+                val chatRoom = it.getValue(ChatItem::class.java)
+                chatRoomId = chatRoom?.chatRoomId!!
+            } else {
+                chatRoomId = UUID.randomUUID().toString()
+            }
+            // 메세지 , 알림 보내기
+
+            val message = "<구매확정 알림>\n" +
+                    "상품명 : [${binding.postTitle.text}]\n" +
+                    "상품가격 : ${binding.postPrice.text}원\n\n" +
+                    " 판매하신 상품의 거래가 완료되었습니다.\n" +
+                    " 판매금액은 24시간 이내에 정산됩니다."
+
+            val lastMessageTime = System.currentTimeMillis()
+
+            val newChatRoom = ChatItem(
+                chatRoomId = chatRoomId,
+                otherUserId = otherUserId,
+                otherUserProfile = otherUserProfileImage,
+                otherUserName = otherUserName,
+                lastMessage = message,
+                lastMessageTime = lastMessageTime
+            )
+
+            if(it.value == null)
+                chatRoomDB.setValue(newChatRoom)
+
+            val newChatItem = ChatDetailItem(
+                message = message,
+                userId = userId,
+                userProfile = myUserProfileImage
+            )
+
+            Firebase.database.reference.child("ChatRooms").child(otherUserId)
+                .child(userId!!)
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        if (snapshot.exists())
+                            unreadMessage = snapshot.child("unreadMessage")
+                                .getValue(Int::class.java)!!
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                    }
+                })
+
+            unreadMessage += 1
+
+            chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
+
+            Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId).child("chats").push().apply{
+                newChatItem.chatId = key
+                setValue(newChatItem)
+            }
+            Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId).child("chats").push().apply{
+                newChatItem.chatId = key
+                setValue(newChatItem)
+            }
+
+            val updates: MutableMap<String, Any> = hashMapOf(
+                "ChatRooms/$otherUserId/$userId/lastMessage" to message,
+                "ChatRooms/$otherUserId/$userId/chatRoomId" to chatRoomId,
+                "ChatRooms/$otherUserId/$userId/otherUserId" to userId,
+                "ChatRooms/$otherUserId/$userId/otherUserName" to myUserName,
+                "ChatRooms/$otherUserId/$userId/otherUserProfile" to myUserProfileImage,
+                "ChatRooms/$otherUserId/$userId/unreadMessage" to unreadMessage,
+                "ChatRooms/$otherUserId/$userId/lastMessageTime" to lastMessageTime
+            )
+
+            Firebase.database.reference.updateChildren(updates).addOnSuccessListener {
+                val action =
+                    SafePaymentFragmentDirections.actionSafePaymentFragmentToChatDetailFragment(
+                        chatRoomId = chatRoomId,
+                        otherUserId = writerId
+                    )
+                findNavController().navigate(action)
+            }
+
+            val client = OkHttpClient()
+            val root = JSONObject()
+            val notification = JSONObject()
+            notification.put("title", myUserName)
+            notification.put("body", message)
+            notification.put("chatRoomId", chatRoomId)
+            notification.put("otherUserId", userId)
+
+            root.put("to", otherUserToken)
+            root.put("priority", "high")
+            root.put("data", notification)
+
+            val requestBody =
+                root.toString()
+                    .toRequestBody("application/json; charset=utf-8".toMediaType())
+            val request =
+                Request.Builder().post(requestBody)
+                    .url("https://fcm.googleapis.com/fcm/send")
+                    .header(
+                        "Authorization",
+                        "key=${mContext?.getString(R.string.fcm_server_key)}"
+                    )
+                    .build()
+            client.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                }
+
+            })
+        }
+    }
+
+    fun sendChat(message: String) {
+        val chatRoomDB =
+            Firebase.database.reference.child("ChatRooms").child(userId!!).child(writerId)
+
+        chatRoomDB.get().addOnSuccessListener {
+
+            if (it.value != null) {
+                val chatRoom = it.getValue(ChatItem::class.java)
+                chatRoomId = chatRoom?.chatRoomId!!
+            } else {
+                chatRoomId = UUID.randomUUID().toString()
+            }
+            // 메세지 , 알림 보내기
+
+            val lastMessageTime = System.currentTimeMillis()
+
+            val newChatRoom = ChatItem(
+                chatRoomId = chatRoomId,
+                otherUserId = otherUserId,
+                otherUserProfile = otherUserProfileImage,
+                otherUserName = otherUserName,
+                lastMessage = message,
+                lastMessageTime = lastMessageTime
+            )
+
+            if(it.value == null)
+                chatRoomDB.setValue(newChatRoom)
+
+            val newChatItem = ChatDetailItem(
+                message = message,
+                userId = userId,
+                userProfile = myUserProfileImage
+            )
+
+            Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId!!)
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        if (snapshot.exists())
+                            ChatDetailFragment.unreadMessage =
+                                snapshot.child("unreadMessage").getValue(Int::class.java)!!
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                    }
+                })
+
+            unreadMessage += 1
+
+            chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
+
+            Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId).child("chats").push().apply{
+                newChatItem.chatId = key
+                setValue(newChatItem)
+            }
+            Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId).child("chats").push().apply{
+                newChatItem.chatId = key
+                setValue(newChatItem)
+            }
+
+            val updates: MutableMap<String, Any> = hashMapOf(
+                "ChatRooms/$otherUserId/$userId/lastMessage" to message,
+                "ChatRooms/$otherUserId/$userId/chatRoomId" to chatRoomId,
+                "ChatRooms/$otherUserId/$userId/otherUserId" to userId,
+                "ChatRooms/$otherUserId/$userId/otherUserName" to myUserName,
+                "ChatRooms/$otherUserId/$userId/otherUserProfile" to myUserProfileImage,
+                "ChatRooms/$otherUserId/$userId/unreadMessage" to unreadMessage,
+                "ChatRooms/$otherUserId/$userId/lastMessageTime" to lastMessageTime
+            )
+
+            Firebase.database.reference.updateChildren(updates)
+
+            val client = OkHttpClient()
+            val root = JSONObject()
+            val notification = JSONObject()
+            notification.put("title", myUserName)
+            notification.put("body", message)
+            notification.put("chatRoomId", chatRoomId)
+            notification.put("otherUserId", userId)
+
+            root.put("to", otherUserToken)
+            root.put("priority", "high")
+            root.put("data", notification)
+
+            val requestBody =
+                root.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+            val request =
+                Request.Builder().post(requestBody).url("https://fcm.googleapis.com/fcm/send")
+                    .header("Authorization", "key=${getString(R.string.fcm_server_key)}")
+                    .build()
+            client.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                }
+
+            })
+        }
     }
 }
 

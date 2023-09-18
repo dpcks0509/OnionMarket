@@ -102,6 +102,9 @@
         <action
             android:id="@+id/action_profileFragment_to_withdrawalFragment"
             app:destination="@id/withdrawalFragment" />
+        <action
+            android:id="@+id/action_profileFragment_to_chatFragment"
+            app:destination="@id/chatFragment" />
     </fragment>
     <fragment
         android:id="@+id/postDetailFragment"
@@ -226,6 +229,10 @@
         <argument
             android:name="postId"
             app:argType="string" />
+        <action
+            android:id="@+id/action_reviewWriteFragment_to_chatDetailFragment"
+            app:destination="@id/chatDetailFragment"
+            app:popUpTo="@id/postDetailFragment"/>
     </fragment>
     <fragment
         android:id="@+id/profileEditFragment"
@@ -239,7 +246,7 @@
         tools:layout="@layout/fragment_withdrawal"/>
     <fragment
         android:id="@+id/waybillFragment"
-        android:name="pnu.cse.onionmarket.payment.waybill.WaybillFragment"
+        android:name="pnu.cse.onionmarket.payment.WaybillFragment"
         android:label="WaybillFragment"
         tools:layout="@layout/fragment_waybill">
         <action

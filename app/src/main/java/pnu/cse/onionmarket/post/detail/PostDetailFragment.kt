@@ -35,8 +35,10 @@ import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.chat.ChatItem
 import pnu.cse.onionmarket.databinding.FragmentPostDetailBinding
 import pnu.cse.onionmarket.home.HomeFragmentDirections
+import pnu.cse.onionmarket.payment.transaction.TransactionItem
 import pnu.cse.onionmarket.post.PostItem
 import pnu.cse.onionmarket.profile.ProfileFragmentDirections
+import pnu.cse.onionmarket.profile.review.ReviewItem
 import pnu.cse.onionmarket.wallet.WalletItem
 import java.util.UUID
 
@@ -67,8 +69,6 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
         val writerId = args.writerId
         val postId = args.postId
         val userId = Firebase.auth.currentUser?.uid
-
-
 
         if (userId == writerId) {
             binding.editButton.visibility = View.VISIBLE
@@ -166,7 +166,7 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
             }
         }
 
-
+        var postStatus = false
 
         Firebase.database.reference.child("Posts").child(postId)
             .addValueEventListener(object : ValueEventListener {
@@ -253,15 +253,19 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                                     binding.root.context,
                                     R.color.main_color
                                 )
+                            postStatus = true
                         } else {
                             text = "판매완료"
                             backgroundTintList =
-                                ContextCompat.getColorStateList(binding.root.context, R.color.gray)
-                            binding.safePaymentButton.text = "구매정보"
+                                ContextCompat.getColorStateList(
+                                    binding.root.context,
+                                    R.color.gray
+                                )
                             binding.chatButton.backgroundTintList = ContextCompat.getColorStateList(
                                 binding.root.context,
                                 R.color.light_gray
                             )
+                            binding.safePaymentButton.text = "구매정보"
                             binding.chatButton.isClickable = false
 
                             if (userId == writerId) {
@@ -290,6 +294,8 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
 
                     if (snapshot.child("buyerId").exists()) {
                         buyerId = snapshot.child("buyerId").getValue(String::class.java)!!
+                        binding.safePaymentButton.text = "구매정보"
+
                         if (userId == buyerId) {
                             binding.chatButton.backgroundTintList = ContextCompat.getColorStateList(
                                 binding.root.context,
@@ -298,26 +304,65 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                             binding.chatButton.isClickable = true
 
                             binding.safePaymentButton.visibility = View.VISIBLE
-                            binding.writeReview.visibility = View.VISIBLE
+                            binding.safePaymentButton.backgroundTintList =
+                                ContextCompat.getColorStateList(
+                                    binding.root.context,
+                                    R.color.main_color
+                                )
+                            binding.safePaymentButton.isClickable = true
 
-                            binding.writeReview.setOnClickListener {
-                                val action =
-                                    PostDetailFragmentDirections.actionPostDetailFragmentToReviewWriteFragment(
-                                        profileUserId = writerId,
-                                        postId = postId
-                                    )
-                                findNavController().navigate(action)
-                            }
+                            Firebase.database.reference.child("Transactions")
+                                .addValueEventListener(object : ValueEventListener {
+                                    override fun onDataChange(snapshot: DataSnapshot) {
+                                        snapshot.children.map {
+
+                                            val transaction =
+                                                it.getValue(TransactionItem::class.java)
+                                            transaction ?: return
+                                            if (transaction.buyerId == userId && transaction.completePayment == true) {
+                                                binding.writeReview.visibility = View.VISIBLE
+
+                                                binding.writeReview.setOnClickListener {
+                                                    val action =
+                                                        PostDetailFragmentDirections.actionPostDetailFragmentToReviewWriteFragment(
+                                                            profileUserId = writerId,
+                                                            postId = postId
+                                                        )
+                                                    findNavController().navigate(action)
+                                                }
+                                            } else {
+                                                binding.writeReview.visibility = View.GONE
+                                            }
+
+                                        }
+                                    }
+
+                                    override fun onCancelled(error: DatabaseError) {}
+
+                                })
+
                         } else {
                             binding.writeReview.visibility = View.INVISIBLE
 
                             binding.safePaymentButton.apply {
                                 text = "안전결제"
-                                isClickable = false
-                                backgroundTintList = ContextCompat.getColorStateList(
-                                    binding.root.context,
-                                    R.color.light_gray
-                                )
+                            }
+                            if (userId == buyerId || buyerId.isNullOrEmpty()) {
+                                binding.safePaymentButton.apply {
+                                    isClickable = true
+                                    backgroundTintList = ContextCompat.getColorStateList(
+                                        binding.root.context,
+                                        R.color.main_color
+                                    )
+                                }
+                            } else {
+                                binding.safePaymentButton.apply {
+                                    isClickable = false
+                                    backgroundTintList = ContextCompat.getColorStateList(
+                                        binding.root.context,
+                                        R.color.light_gray
+                                    )
+                                }
                             }
                         }
                     }
@@ -334,6 +379,49 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                 }
 
                 override fun onCancelled(error: DatabaseError) {}
+            })
+
+        var onPayment = true
+        Firebase.database.reference.child("Transactions")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if(postStatus == false) {
+                        snapshot.children.map {
+                            val transaction =
+                                it.getValue(TransactionItem::class.java)
+                            transaction ?: return
+                            if (transaction.postId == postId && transaction.completePayment == true)
+                                onPayment = false
+
+                            if (onPayment) {
+                                binding.postStatus.apply {
+                                    text = "거래중"
+                                    backgroundTintList =
+                                        ContextCompat.getColorStateList(
+                                            binding.root.context,
+                                            R.color.pink
+                                        )
+                                }
+
+                            } else {
+                                binding.postStatus.apply {
+                                    text = "판매완료"
+                                    backgroundTintList =
+                                        ContextCompat.getColorStateList(
+                                            binding.root.context,
+                                            R.color.gray
+                                        )
+                                }
+                            }
+                        }
+                    }
+
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+
+                }
+
             })
 
         Firebase.database.reference.child("Users").child(writerId)
@@ -413,28 +501,28 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                                                         .child(postId)
                                                         .removeValue()
                                                     // 사진 삭제
-                                                    val imageRef =
-                                                        Firebase.storage.reference.child(
-                                                            "posts/${postId}"
-                                                        )
-                                                    imageRef.listAll()
-                                                        .addOnSuccessListener { listResult ->
-                                                            // Delete each image in the list
-                                                            val deletePromises =
-                                                                mutableListOf<Task<Void>>()
-                                                            listResult.items.forEach { item ->
-                                                                val deletePromise = item.delete()
-                                                                deletePromises.add(deletePromise)
-                                                            }
-
-                                                            Tasks.whenAllComplete(deletePromises)
-                                                                .addOnSuccessListener {
-                                                                }
-                                                                .addOnFailureListener { exception ->
-                                                                }
-                                                        }
-                                                        .addOnFailureListener { exception ->
-                                                        }
+//                                                    val imageRef =
+//                                                        Firebase.storage.reference.child(
+//                                                            "posts/${postId}"
+//                                                        )
+//                                                    imageRef.listAll()
+//                                                        .addOnSuccessListener { listResult ->
+//                                                            // Delete each image in the list
+//                                                            val deletePromises =
+//                                                                mutableListOf<Task<Void>>()
+//                                                            listResult.items.forEach { item ->
+//                                                                val deletePromise = item.delete()
+//                                                                deletePromises.add(deletePromise)
+//                                                            }
+//
+//                                                            Tasks.whenAllComplete(deletePromises)
+//                                                                .addOnSuccessListener {
+//                                                                }
+//                                                                .addOnFailureListener { exception ->
+//                                                                }
+//                                                        }
+//                                                        .addOnFailureListener { exception ->
+//                                                        }
                                                 }
                                             }
 

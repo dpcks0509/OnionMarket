@@ -243,6 +243,26 @@
             </LinearLayout>
 
             <TextView
+                android:id="@+id/waybill_check_button"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_margin="15dp"
+                android:background="@drawable/button_radius"
+                android:backgroundTint="@color/main_color"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:text="택배 조회"
+                android:textColor="@color/white"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/waybill_info" />
+
+            <TextView
                 android:id="@+id/wallet_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -253,7 +273,7 @@
                 android:textStyle="bold"
                 android:visibility="visible"
                 app:layout_constraintStart_toStartOf="@id/post_info"
-                app:layout_constraintTop_toBottomOf="@id/waybill_info" />
+                app:layout_constraintTop_toBottomOf="@id/waybill_check_button" />
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/wallet_info"
@@ -378,7 +398,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="20dp"
-                            android:text="수수료 (1%)"
+                            android:text="수수료"
                             android:textSize="20sp" />
 
                         <ImageButton
@@ -398,7 +418,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="20dp"
-                        android:text="100원"
+                        android:text="1000원"
                         android:textColor="@color/black"
                         android:textSize="24sp"
                         android:textStyle="bold" />
@@ -423,7 +443,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="20dp"
-                        android:text="10,100원"
+                        android:text="11,000원"
                         android:textColor="@color/black"
                         android:textSize="24sp"
                         android:textStyle="bold" />

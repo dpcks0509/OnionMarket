@@ -45,7 +45,7 @@ class JoinActivity : AppCompatActivity() {
             val nickname = binding.joinNickname.text.toString()
 
             if(email.isEmpty() || password.isEmpty() || phone.isEmpty() || nickname.isEmpty()) {
-                Toast.makeText(this, "회원가입에 필요한 정보를 모두 입력해주세요.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "회원가입에 필요한 정보를\n모두 입력해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -54,7 +54,6 @@ class JoinActivity : AppCompatActivity() {
                     override fun onDataChange(snapshot: DataSnapshot) {
                         var nicknameExists = false
                         var phoneExits = false
-
                         for (userSnapshot in snapshot.children) {
                             val userNickname = userSnapshot.child("userNickname").getValue(String::class.java)
                             if (userNickname == nickname) {
@@ -70,14 +69,12 @@ class JoinActivity : AppCompatActivity() {
                                 break
                             }
                         }
-
                         if (nicknameExists) {
                             Toast.makeText(applicationContext, "이미 사용 중인 닉네임입니다.", Toast.LENGTH_SHORT).show()
                         } else if(phoneExits) {
                             Toast.makeText(applicationContext, "이미 가입된 핸드폰번호입니다.", Toast.LENGTH_SHORT).show()
                         } else {
                             showProgress()
-
                             Firebase.auth.createUserWithEmailAndPassword(email, password)
                                 .addOnCompleteListener { join ->
                                     val currentUser = Firebase.auth.currentUser

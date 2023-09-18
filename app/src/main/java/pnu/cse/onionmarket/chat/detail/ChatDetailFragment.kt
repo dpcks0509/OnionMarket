@@ -31,7 +31,9 @@ import pnu.cse.onionmarket.MainActivity
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.UserItem
 import pnu.cse.onionmarket.databinding.FragmentChatDetailBinding
+import pnu.cse.onionmarket.post.detail.PostDetailFragmentDirections
 import java.io.IOException
+import java.util.UUID
 
 class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
     private lateinit var binding: FragmentChatDetailBinding
@@ -48,6 +50,7 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
     private var myUserName: String = ""
     private var myUserProfileImage: String = ""
 
+    private var exit = false
 
     companion object {
         var unreadMessage: Int = 0
@@ -58,8 +61,10 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
     override fun onStop() {
         super.onStop()
 
-        Firebase.database.reference.child("ChatRooms").child(myUserId).child(otherUserId)
-            .child("unreadMessage").setValue(0)
+        if(!exit) {
+            Firebase.database.reference.child("ChatRooms").child(myUserId).child(otherUserId)
+                .child("unreadMessage").setValue(0)
+        }
     }
 
     override fun onResume() {
@@ -127,7 +132,7 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
                 requireContext().getSystemService(AppCompatActivity.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.cancel(0)
 
-            Firebase.database.reference.child("Chats").child(chatRoomId)
+            Firebase.database.reference.child("ChatRooms").child(myUserId).child(otherUserId).child("lastMessage")
                 .addValueEventListener(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
                         if (!snapshot.exists())
@@ -139,11 +144,32 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
                 })
         }
 
+        binding.editButton.setOnClickListener {
+            val builder = AlertDialog.Builder(context)
+            builder
+                .setTitle("채팅방 나가기")
+                .setMessage("채팅방을 나가시겠습니까?")
+                .setPositiveButton("나가기",
+                    DialogInterface.OnClickListener { dialog, id ->
+                        exit = true
+                        Firebase.database.reference.child("ChatRooms").child(myUserId).removeValue()
+                        findNavController().popBackStack()
+                    })
+                .setNegativeButton("취소",
+                    DialogInterface.OnClickListener { dialog, id -> })
+
+            builder.create()
+            builder.show()
+        }
+
         Firebase.database.reference.child("ChatRooms").child(otherUserId).child(myUserId)
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    if (snapshot.exists())
+                    if (snapshot.child("unreadMessage").exists())
                         unreadMessage = snapshot.child("unreadMessage").getValue(Int::class.java)!!
+                    else {
+                        unreadMessage = 0
+                    }
                 }
 
                 override fun onCancelled(error: DatabaseError) {
@@ -165,7 +191,11 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
                 userProfile = myUserProfileImage
             )
 
-            Firebase.database.reference.child("Chats").child(chatRoomId).push().apply {
+            Firebase.database.reference.child("ChatRooms").child(myUserId).child(otherUserId).child("chats").push().apply{
+                newChatItem.chatId = key
+                setValue(newChatItem)
+            }
+            Firebase.database.reference.child("ChatRooms").child(otherUserId).child(myUserId).child("chats").push().apply{
                 newChatItem.chatId = key
                 setValue(newChatItem)
             }
@@ -232,7 +262,7 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
     }
 
     private fun getChatData() {
-        Firebase.database.reference.child("Chats").child(chatRoomId)
+        Firebase.database.reference.child("ChatRooms").child(myUserId).child(otherUserId).child("chats")
             .addChildEventListener(object : ChildEventListener {
                 override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
                     val chatDetailItem = snapshot.getValue(ChatDetailItem::class.java)

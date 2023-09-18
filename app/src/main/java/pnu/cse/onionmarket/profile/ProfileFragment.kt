@@ -30,6 +30,7 @@ import pnu.cse.onionmarket.chat.ChatItem
 import pnu.cse.onionmarket.databinding.FragmentProfileBinding
 import pnu.cse.onionmarket.post.PostItem
 import pnu.cse.onionmarket.profile.review.ReviewFragment
+import pnu.cse.onionmarket.profile.review.ReviewItem
 import pnu.cse.onionmarket.profile.selling.SellingFragment
 import java.util.*
 
@@ -100,8 +101,47 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         binding.sellingPost.setTextSize(TypedValue.COMPLEX_UNIT_PX, reviewTextPx)
         binding.review.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray))
 
+        var userReviewSum = 0.0
+        var userReviewNumber = 0
+        var userReviewStar = 0.0
 
-        if (userId == writerId || writerId.isNullOrEmpty()) {
+        // users star 업데이트
+        Firebase.database.reference.child("Reviews")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    userReviewSum = 0.0
+                    userReviewNumber = 0
+                    userReviewStar = 0.0
+
+                    snapshot.children.map {
+                        val review = it.getValue(ReviewItem::class.java)
+                        review ?: return
+
+                        if (review.userId == userId) {
+                            userReviewSum += review.reviewStar!!
+                            userReviewNumber += 1
+                        }
+                    }
+                    if (userReviewNumber != 0) {
+                        userReviewStar = (userReviewSum / userReviewNumber)
+                        userReviewStar =
+                            String.format("%.1f", userReviewStar).toDouble()
+                    }
+
+                    val update: MutableMap<String, Any> = hashMapOf(
+                        "Users/$userId/userStar" to userReviewStar
+                    )
+
+                    Firebase.database.reference.updateChildren(update)
+
+
+                }
+
+                override fun onCancelled(error: DatabaseError) {}
+
+            })
+
+        if (writerId.isNullOrEmpty()) {
             val mainActivity = activity as MainActivity
             mainActivity.hideBottomNavigation(false)
 
@@ -132,51 +172,60 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                     override fun onCancelled(error: DatabaseError) {}
                 })
         } else {
-            if (writerId != null) {
-                val mainActivity = activity as MainActivity
-                mainActivity.hideBottomNavigation(true)
+            val mainActivity = activity as MainActivity
+            mainActivity.hideBottomNavigation(true)
 
-                binding.backButton.visibility = View.VISIBLE
-                binding.settingButton.visibility = View.INVISIBLE
-                binding.profileChatButton.visibility = View.VISIBLE
+            binding.backButton.visibility = View.VISIBLE
+            binding.settingButton.visibility = View.INVISIBLE
+            binding.profileChatButton.visibility = View.VISIBLE
 
-                Firebase.database.reference.child("Users").child(writerId!!)
-                    .addValueEventListener(object : ValueEventListener {
-                        override fun onDataChange(snapshot: DataSnapshot) {
-                            val userImageUri =
-                                snapshot.child("userProfileImage").getValue(String::class.java)
-                            if (userImageUri.isNullOrEmpty())
-                                Glide.with(binding.userImage)
-                                    .load(R.drawable.app_logo)
-                                    .into(binding.userImage)
-                            else
-                                Glide.with(binding.userImage)
-                                    .load(userImageUri)
-                                    .into(binding.userImage)
+            Firebase.database.reference.child("Users").child(writerId!!)
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        val userImageUri =
+                            snapshot.child("userProfileImage").getValue(String::class.java)
+                        if (userImageUri.isNullOrEmpty())
+                            Glide.with(binding.userImage)
+                                .load(R.drawable.app_logo)
+                                .into(binding.userImage)
+                        else
+                            Glide.with(binding.userImage)
+                                .load(userImageUri)
+                                .into(binding.userImage)
 
 
-                            binding.userNickname.text =
-                                snapshot.child("userNickname").getValue(String::class.java)
-                            binding.userStar.text =
-                                snapshot.child("userStar").getValue(Double::class.java).toString()
-                        }
+                        binding.userNickname.text =
+                            snapshot.child("userNickname").getValue(String::class.java)
+                        binding.userStar.text =
+                            snapshot.child("userStar").getValue(Double::class.java).toString()
+                    }
 
-                        override fun onCancelled(error: DatabaseError) {}
-                    })
+                    override fun onCancelled(error: DatabaseError) {}
+                })
 
-                binding.backButton.setOnClickListener {
-                    if (postId.isNullOrEmpty()) {
-                        findNavController().popBackStack()
-                    } else {
-                        val action =
-                            ProfileFragmentDirections.actionProfileFragmentToPostDetailFragment(
-                                writerId = writerId,
-                                postId = postId
-                            )
-                        findNavController().navigate(action)
+            binding.backButton.setOnClickListener {
+                if (postId.isNullOrEmpty()) {
+                    findNavController().popBackStack()
+                } else {
+                    val action =
+                        ProfileFragmentDirections.actionProfileFragmentToPostDetailFragment(
+                            writerId = writerId,
+                            postId = postId
+                        )
+                    findNavController().navigate(action)
+                }
+            }
+
+            if(userId == writerId) {
+                binding.profileChatButton.apply {
+                    text = "나의채팅"
+                    setOnClickListener {
+                        val mainActivity = activity as MainActivity
+                        mainActivity.hideBottomNavigation(false)
+                        findNavController().navigate(R.id.action_profileFragment_to_chatFragment)
                     }
                 }
-
+            } else {
                 binding.profileChatButton.setOnClickListener {
                     val chatRoomDB =
                         Firebase.database.reference.child("ChatRooms").child(userId!!)

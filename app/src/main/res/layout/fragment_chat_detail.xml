@@ -29,10 +29,17 @@
             android:layout_weight="1"
             android:gravity="center"
             tools:text="닉네임"
-            android:paddingRight="48dp"
             android:textColor="@color/black"
             android:textSize="20sp"
             android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/editButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:backgroundTint="@color/white"
+            android:src="@drawable/baseline_more_horiz_24" />
 
     </LinearLayout>
 

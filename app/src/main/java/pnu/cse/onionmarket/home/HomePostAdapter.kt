@@ -7,8 +7,14 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.databinding.ItemPostBinding
+import pnu.cse.onionmarket.payment.transaction.TransactionItem
 import pnu.cse.onionmarket.post.PostItem
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -54,9 +60,35 @@ class HomePostAdapter(
                         ContextCompat.getColorStateList(binding.root.context, R.color.main_color)
 
                 } else {
-                    text = "판매완료"
-                    backgroundTintList =
-                        ContextCompat.getColorStateList(binding.root.context, R.color.gray)
+                    var onPayment = true
+                    Firebase.database.reference.child("Transactions").addValueEventListener(object:
+                        ValueEventListener {
+                        override fun onDataChange(snapshot: DataSnapshot) {
+                            snapshot.children.map {
+                                val transaction =
+                                    it.getValue(TransactionItem::class.java)
+                                transaction ?: return
+                                if(transaction.postId == item.postId && transaction.completePayment == true)
+                                    onPayment = false
+
+                                if(onPayment) {
+                                    text = "거래중"
+                                    backgroundTintList =
+                                        ContextCompat.getColorStateList(binding.root.context, R.color.pink)
+                                } else {
+                                    text = "판매완료"
+                                    backgroundTintList =
+                                        ContextCompat.getColorStateList(binding.root.context, R.color.gray)
+                                }
+                            }
+                        }
+
+                        override fun onCancelled(error: DatabaseError) {
+
+                        }
+
+                    })
+
                 }
             }
 

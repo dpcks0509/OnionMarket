@@ -43,6 +43,7 @@ class ChatFragment : Fragment(R.layout.fragment_chat) {
                     chatRoomId = item.chatRoomId!!,
                     otherUserId = item.otherUserId
                 )
+
             findNavController().navigate(action)
         }
 
@@ -53,8 +54,7 @@ class ChatFragment : Fragment(R.layout.fragment_chat) {
             addItemDecoration(DividerItemDecoration(context, LinearLayout.VERTICAL))
         }
 
-        val currentUserId = Firebase.auth.currentUser?.uid
-        val chatRoomsDB = Firebase.database.reference.child("ChatRooms").child(currentUserId!!)
+        val chatRoomsDB = Firebase.database.reference.child("ChatRooms").child(userId!!)
 
         chatRoomsDB.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {

@@ -107,10 +107,6 @@ ReviewFragment: Fragment(R.layout.fragment_review) {
                             String.format("%.1f", userReviewStar).toDouble()
                     }
 
-                    Firebase.database.reference.child("Reviews")
-                        .removeEventListener(this)
-
-
                     val update: MutableMap<String, Any> = hashMapOf(
                         "Users/$profileUserId/userStar" to userReviewStar
                     )

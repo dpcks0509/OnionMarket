@@ -2,6 +2,7 @@ package pnu.cse.onionmarket.wallet
 
 import android.app.AlertDialog
 import android.content.DialogInterface
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.PopupMenu
@@ -10,21 +11,38 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.databinding.ItemWalletBinding
+import pnu.cse.onionmarket.payment.workmanager.DeliveryCheckWorker
+import pnu.cse.onionmarket.service.RetrofitService
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class WalletAdapter() : ListAdapter<WalletItem, WalletAdapter.ViewHolder>(differ) {
+
+    private val gson: Gson = GsonBuilder()
+        .setLenient()
+        .create()
+
+    private val retrofit = Retrofit.Builder()
+        .baseUrl("http://43.200.253.65:8080")
+        .addConverterFactory(GsonConverterFactory.create(gson))
+        .build()
+
+    private val retrofitService = retrofit.create(RetrofitService::class.java)
 
     inner class ViewHolder(private val binding: ItemWalletBinding) :
         RecyclerView.ViewHolder(binding.root) {
         fun bind(item: WalletItem) {
-            if(item.walletImage.isNullOrEmpty())
+            if (item.walletImage.isNullOrEmpty())
                 Glide.with(binding.walletImage)
                     .load(R.drawable.app_logo)
                     .into(binding.walletImage)
@@ -34,6 +52,48 @@ class WalletAdapter() : ListAdapter<WalletItem, WalletAdapter.ViewHolder>(differ
                     .into(binding.walletImage)
 
             binding.walletName.text = item.walletName
+
+//            var walletMoney = "0"
+//            var getMoney = false
+//
+//            val walletJob = CoroutineScope(Dispatchers.IO).async {
+//                retrofitService.getWalletMoney(item.privateKey!!).execute().let { response ->
+//                    if (response.isSuccessful) {
+//                        walletMoney = response.body().toString()
+//                        getMoney = true
+//                    }
+//                }
+//                getMoney
+//            }
+//
+//            runBlocking {
+//                val walletResult = walletJob.await()
+//
+//                if (walletResult) {
+//
+//                    val updates: MutableMap<String, Any> = hashMapOf(
+//                        "Wallets/${item.walletId}/walletMoney" to walletMoney,
+//                    )
+//
+//                    Firebase.database.reference.updateChildren(updates)
+//
+//                    val priceWithoutCommas = walletMoney
+//                    val formattedPrice = StringBuilder()
+//                    var commaCounter = 0
+//
+//                    for (i in priceWithoutCommas.length - 1 downTo 0) {
+//                        formattedPrice.append(priceWithoutCommas[i])
+//                        commaCounter++
+//
+//                        if (commaCounter == 3 && i > 0) {
+//                            formattedPrice.append(",")
+//                            commaCounter = 0
+//                        }
+//                    }
+//                    formattedPrice.reverse()
+//                    binding.walletMoney.text = "$formattedPrice 원"
+//                }
+//            }
 
             val priceWithoutCommas = item.walletMoney.toString()
             val formattedPrice = StringBuilder()
@@ -49,7 +109,6 @@ class WalletAdapter() : ListAdapter<WalletItem, WalletAdapter.ViewHolder>(differ
                 }
             }
             formattedPrice.reverse()
-
             binding.walletMoney.text = "$formattedPrice 원"
 
             binding.walletEditButton.setOnClickListener {
@@ -70,7 +129,8 @@ class WalletAdapter() : ListAdapter<WalletItem, WalletAdapter.ViewHolder>(differ
                                 .setMessage("정말로 지갑을 삭제하시겠습니까?")
                                 .setPositiveButton("삭제",
                                     DialogInterface.OnClickListener { dialog, id ->
-                                        Firebase.database.reference.child("Wallets").child(item.walletId!!).removeValue()
+                                        Firebase.database.reference.child("Wallets")
+                                            .child(item.walletId!!).removeValue()
                                         notifyItemRemoved(position)
                                     })
                                 .setNegativeButton("취소",
