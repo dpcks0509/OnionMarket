@@ -75,10 +75,12 @@ class WalletFragment : Fragment(R.layout.fragment_wallet) {
                         binding.transactionText.visibility = View.INVISIBLE
                         binding.noTransaction.visibility = View.INVISIBLE
                         binding.divideLine2.visibility = View.GONE
+                        binding.transactionRecyclerView.visibility = View.INVISIBLE
                     } else {
                         binding.noWallet.visibility = View.GONE
                         binding.transactionText.visibility = View.VISIBLE
                         binding.divideLine2.visibility = View.VISIBLE
+                        binding.transactionRecyclerView.visibility = View.VISIBLE
                     }
                 }
 

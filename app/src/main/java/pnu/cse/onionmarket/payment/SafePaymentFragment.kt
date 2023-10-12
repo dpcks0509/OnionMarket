@@ -23,8 +23,6 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import com.skydoves.balloon.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +33,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import pnu.cse.onionmarket.MainActivity
+import pnu.cse.onionmarket.MainActivity.Companion.retrofitService
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.UserItem
 import pnu.cse.onionmarket.chat.ChatItem
@@ -48,11 +47,10 @@ import pnu.cse.onionmarket.payment.transaction.TransactionItem
 import pnu.cse.onionmarket.payment.workmanager.AfterDeliveredWorker
 import pnu.cse.onionmarket.payment.workmanager.WaybillRegistrationWorker
 import pnu.cse.onionmarket.post.PostItem
-import pnu.cse.onionmarket.service.RetrofitService
+import pnu.cse.onionmarket.service.BlockchainPostItem
+import pnu.cse.onionmarket.service.PaymentItem
 import pnu.cse.onionmarket.wallet.WalletFragmentDirections
 import pnu.cse.onionmarket.wallet.WalletItem
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -71,6 +69,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
     private var chatRoomId: String = ""
     private var otherUserId: String = ""
     private var otherUserName: String = ""
+    private var otherUserPhone: String = ""
     private var otherUserToken: String = ""
     private var otherUserProfileImage: String = ""
     private var myUserId: String = ""
@@ -78,21 +77,12 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
     private var myUserProfileImage: String = ""
     private var myUserToken: String = ""
     private var transactionId: String = ""
+    private var buyerWalletKey: String = ""
+    private var sellerWalletKey: String = ""
 
     private var userId: String = ""
     private var postId: String = ""
     private var writerId: String = ""
-
-    private val gson : Gson = GsonBuilder()
-        .setLenient()
-        .create()
-
-    private val retrofit = Retrofit.Builder()
-        .baseUrl("http://43.200.253.65:8080")
-        .addConverterFactory(GsonConverterFactory.create(gson))
-        .build()
-
-    private val retrofitService = retrofit.create(RetrofitService::class.java)
 
     override fun onResume() {
         super.onResume()
@@ -138,6 +128,9 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
         var postThumbnailImage = ""
         var postTitle = ""
         var postPrice = ""
+        var postContent = ""
+        var createdAt: Long = 0
+        var postImages: List<String>? = emptyList()
         otherUserId = writerId
 
         Firebase.database.reference.child("Posts").child(postId)
@@ -147,6 +140,10 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                     postThumbnailImage = post?.postThumbnailUrl!!
                     postTitle = post?.postTitle!!
                     postPrice = post?.postPrice!!
+                    postContent = post?.postContent!!
+                    postImages = post?.postImagesUrl
+                    createdAt = post?.createdAt!!
+
                     Glide.with(binding.postThumbnail)
                         .load(postThumbnailImage)
                         .into(binding.postThumbnail)
@@ -238,49 +235,50 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                     .load(wallet.walletImage)
                                     .into(binding.walletImage)
                             binding.walletName.text = wallet.walletName
+                            buyerWalletKey = wallet.privateKey!!
 
 
-//                            var walletMoney = "0"
-//                            var getMoney = false
-//
-//                            val walletJob = CoroutineScope(Dispatchers.IO).async {
-//                                retrofitService.getWalletMoney(wallet.privateKey!!).execute().let { response ->
-//                                    if (response.isSuccessful) {
-//                                        walletMoney = response.body().toString()
-//                                        getMoney = true
-//                                    }
-//                                }
-//                                getMoney
-//                            }
-//
-//                            runBlocking {
-//                                val walletResult = walletJob.await()
-//
-//                                if (walletResult) {
-//
-//                                    val updates: MutableMap<String, Any> = hashMapOf(
-//                                        "Wallets/${wallet.walletId}/walletMoney" to walletMoney,
-//                                    )
-//
-//                                    Firebase.database.reference.updateChildren(updates)
-//
-//                                    val priceWithoutCommas = walletMoney
-//                                    val formattedPrice = StringBuilder()
-//                                    var commaCounter = 0
-//
-//                                    for (i in priceWithoutCommas.length - 1 downTo 0) {
-//                                        formattedPrice.append(priceWithoutCommas[i])
-//                                        commaCounter++
-//
-//                                        if (commaCounter == 3 && i > 0) {
-//                                            formattedPrice.append(",")
-//                                            commaCounter = 0
-//                                        }
-//                                    }
-//                                    formattedPrice.reverse()
-//                                    binding.walletMoney.text = "$formattedPrice 원"
-//                                }
-//                            }
+                            var walletMoney = "0"
+                            var getMoney = false
+
+                            val walletJob = CoroutineScope(Dispatchers.IO).async {
+                                retrofitService.getWalletMoney(wallet.privateKey!!).execute().let { response ->
+                                    if (response.isSuccessful) {
+                                        walletMoney = response.body().toString().replace("ETH","").toDouble().times(2000000).toInt().toString()
+                                        getMoney = true
+                                    }
+                                }
+                                getMoney
+                            }
+
+                            runBlocking {
+                                val walletResult = walletJob.await()
+
+                                if (walletResult) {
+
+                                    val updates: MutableMap<String, Any> = hashMapOf(
+                                        "Wallets/${wallet.walletId}/walletMoney" to walletMoney,
+                                    )
+
+                                    Firebase.database.reference.updateChildren(updates)
+
+                                    val priceWithoutCommas = walletMoney
+                                    val formattedPrice = StringBuilder()
+                                    var commaCounter = 0
+
+                                    for (i in priceWithoutCommas.length - 1 downTo 0) {
+                                        formattedPrice.append(priceWithoutCommas[i])
+                                        commaCounter++
+
+                                        if (commaCounter == 3 && i > 0) {
+                                            formattedPrice.append(",")
+                                            commaCounter = 0
+                                        }
+                                    }
+                                    formattedPrice.reverse()
+                                    binding.walletMoney.text = "$formattedPrice 원"
+                                }
+                            }
 
 
                             var priceWithoutCommas = wallet.walletMoney.toString()
@@ -299,6 +297,10 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                             formattedPrice.reverse()
                             binding.walletMoney.text = "${formattedPrice}원"
                             return@forEach
+                        }
+
+                        if(wallet.userId == otherUserId) {
+                            sellerWalletKey =  wallet.privateKey!!
                         }
                     }
                 }
@@ -416,33 +418,63 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                             " 판매하신 상품의 거래가 완료되었습니다.\n" +
                                             " 판매금액은 24시간 이내에 정산됩니다."
                                 )
-                            }
 
-                            binding.waybillCheckButton.setOnClickListener {
-
-                                retrofitService.deliveryCheck(
-                                    transaction.waybillCompanyCode!!,
-                                    transaction.waybillNumber!!
+                                retrofitService.savePost(
+                                    BlockchainPostItem(
+                                        userId = otherUserId,
+                                        userNickname = otherUserName,
+                                        userPhone = otherUserPhone,
+                                        postId = postId,
+                                        postImageUrl = postImages.toString(),
+                                        postTitle = postTitle,
+                                        postPrice = postPrice,
+                                        postContent = postContent,
+                                        createdAt = createdAt
+                                    )
                                 ).enqueue(object: retrofit2.Callback<String> {
                                     override fun onResponse(
                                         call: retrofit2.Call<String>,
                                         response: retrofit2.Response<String>
                                     ) {
                                         val state = response.body().toString()
+                                        Log.e("savePost", state)
+                                    }
 
-                                        if(state == "배송완료") {
-                                            deliveryCheck(true)
+                                    override fun onFailure(call: retrofit2.Call<String>, t: Throwable) {
+                                        Log.e("savePost", t.toString())
+                                    }
+                                })
+                            }
+
+                            binding.waybillCheckButton.setOnClickListener {
+
+                                var getDeliveryInfo = false
+                                var deliveryState = ""
+                                val deliveryJob = CoroutineScope(Dispatchers.IO).async {
+                                    retrofitService.deliveryCheck(
+                                        transaction.waybillCompanyCode!!,
+                                        transaction.waybillNumber!!
+                                    ).execute().let { response ->
+                                        if (response.isSuccessful) {
+                                            deliveryState = response.body().toString()
+                                            Log.e("deliveryState",deliveryState)
+                                            getDeliveryInfo = true
                                         }
                                     }
+                                    getDeliveryInfo
+                                }
 
-                                    override fun onFailure(
-                                        call: retrofit2.Call<String>,
-                                        t: Throwable
-                                    ) {
-                                        Log.e("error",t.toString())
+                                runBlocking {
+                                    val getResult = deliveryJob.await()
+
+                                    if(getResult) {
+                                        if(deliveryState == "배송완료") {
+                                            deliveryCheck(true)
+                                        } else {
+                                            Toast.makeText(context,"택배가 이동중입니다. 택배상태 : {$deliveryState}",Toast.LENGTH_SHORT).show()
+                                        }
                                     }
-
-                                })
+                                }
                             }
 
                             binding.waybillTooltip.setOnClickListener {
@@ -528,7 +560,8 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
             if (binding.name.text.isNullOrEmpty() || binding.phone.text.isNullOrEmpty() || binding.address.text.isNullOrEmpty()) {
                 Toast.makeText(context, "배송지 정보를 모두 입력해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
-            } else if (walletMoney < totalMoney) {
+            }
+            else if (walletMoney < totalMoney) {
                 Toast.makeText(context, "거래에 필요한 지갑 잔액이 부족합니다.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
@@ -733,6 +766,47 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                 .setPositiveButton("구매확정",
                     DialogInterface.OnClickListener { dialog, id ->
                         completePayment()
+                        retrofitService.savePost(BlockchainPostItem(
+                            userId = otherUserId,
+                            userNickname = otherUserName,
+                            userPhone = otherUserPhone,
+                            postId = postId,
+                            postImageUrl = postImages.toString(),
+                            postTitle = postTitle,
+                            postPrice = postPrice,
+                            postContent = postContent,
+                            createdAt = createdAt
+                        )).enqueue(object: retrofit2.Callback<String> {
+                                    override fun onResponse(
+                                        call: retrofit2.Call<String>,
+                                        response: retrofit2.Response<String>
+                                    ) {
+                                        val state = response.body().toString()
+                                        Log.e("savePost", state)
+                                    }
+
+                                    override fun onFailure(call: retrofit2.Call<String>, t: Throwable) {
+                                        Log.e("savePost", t.toString())
+                                    }
+                                })
+
+                        retrofitService.makePayment(PaymentItem(
+                            receiverPrivateKey = sellerWalletKey,
+                            senderPrivateKey = buyerWalletKey,
+                            money = (postPrice.toDouble()).div(2000000)
+                        )).enqueue(object: retrofit2.Callback<String> {
+                            override fun onResponse(
+                                call: retrofit2.Call<String>,
+                                response: retrofit2.Response<String>
+                            ) {
+                                val state = response.body().toString()
+                                Log.e("makePayment", state)
+                            }
+
+                            override fun onFailure(call: retrofit2.Call<String>, t: Throwable) {
+                                Log.e("makePayment", t.toString())
+                            }
+                        })
                     })
                 .setNegativeButton("취소",
                     DialogInterface.OnClickListener { dialog, id -> })
@@ -771,6 +845,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                 val otherUserItem = it.getValue(UserItem::class.java)
                 chatDetailAdapter.otherUserItem = otherUserItem
                 otherUserName = otherUserItem?.userNickname.toString()
+                otherUserPhone = otherUserItem?.userPhone.toString()
                 otherUserToken = otherUserItem?.userToken.orEmpty()
                 otherUserProfileImage = otherUserItem?.userProfileImage.orEmpty()
                 getChatData()

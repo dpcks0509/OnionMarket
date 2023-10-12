@@ -19,6 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
+import pnu.cse.onionmarket.MainActivity.Companion.retrofitService
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.databinding.ItemWalletBinding
 import pnu.cse.onionmarket.payment.workmanager.DeliveryCheckWorker
@@ -27,17 +28,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class WalletAdapter() : ListAdapter<WalletItem, WalletAdapter.ViewHolder>(differ) {
-
-    private val gson: Gson = GsonBuilder()
-        .setLenient()
-        .create()
-
-    private val retrofit = Retrofit.Builder()
-        .baseUrl("http://43.200.253.65:8080")
-        .addConverterFactory(GsonConverterFactory.create(gson))
-        .build()
-
-    private val retrofitService = retrofit.create(RetrofitService::class.java)
 
     inner class ViewHolder(private val binding: ItemWalletBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -53,47 +43,47 @@ class WalletAdapter() : ListAdapter<WalletItem, WalletAdapter.ViewHolder>(differ
 
             binding.walletName.text = item.walletName
 
-//            var walletMoney = "0"
-//            var getMoney = false
-//
-//            val walletJob = CoroutineScope(Dispatchers.IO).async {
-//                retrofitService.getWalletMoney(item.privateKey!!).execute().let { response ->
-//                    if (response.isSuccessful) {
-//                        walletMoney = response.body().toString()
-//                        getMoney = true
-//                    }
-//                }
-//                getMoney
-//            }
-//
-//            runBlocking {
-//                val walletResult = walletJob.await()
-//
-//                if (walletResult) {
-//
-//                    val updates: MutableMap<String, Any> = hashMapOf(
-//                        "Wallets/${item.walletId}/walletMoney" to walletMoney,
-//                    )
-//
-//                    Firebase.database.reference.updateChildren(updates)
-//
-//                    val priceWithoutCommas = walletMoney
-//                    val formattedPrice = StringBuilder()
-//                    var commaCounter = 0
-//
-//                    for (i in priceWithoutCommas.length - 1 downTo 0) {
-//                        formattedPrice.append(priceWithoutCommas[i])
-//                        commaCounter++
-//
-//                        if (commaCounter == 3 && i > 0) {
-//                            formattedPrice.append(",")
-//                            commaCounter = 0
-//                        }
-//                    }
-//                    formattedPrice.reverse()
-//                    binding.walletMoney.text = "$formattedPrice 원"
-//                }
-//            }
+            var walletMoney = "0"
+            var getMoney = false
+
+            val walletJob = CoroutineScope(Dispatchers.IO).async {
+                retrofitService.getWalletMoney(item.privateKey!!).execute().let { response ->
+                    if (response.isSuccessful) {
+
+                        walletMoney = response.body().toString().replace("ETH","").toDouble().times(2000000).toInt().toString()
+                        getMoney = true
+                    }
+                }
+                getMoney
+            }
+
+            runBlocking {
+                val walletResult = walletJob.await()
+
+                if (walletResult) {
+                    val updates: MutableMap<String, Any> = hashMapOf(
+                        "Wallets/${item.walletId}/walletMoney" to walletMoney,
+                    )
+
+                    Firebase.database.reference.updateChildren(updates)
+
+                    val priceWithoutCommas = walletMoney.toString()
+                    val formattedPrice = StringBuilder()
+                    var commaCounter = 0
+
+                    for (i in priceWithoutCommas.length - 1 downTo 0) {
+                        formattedPrice.append(priceWithoutCommas[i])
+                        commaCounter++
+
+                        if (commaCounter == 3 && i > 0) {
+                            formattedPrice.append(",")
+                            commaCounter = 0
+                        }
+                    }
+                    formattedPrice.reverse()
+                    binding.walletMoney.text = "$formattedPrice 원"
+                }
+            }
 
             val priceWithoutCommas = item.walletMoney.toString()
             val formattedPrice = StringBuilder()

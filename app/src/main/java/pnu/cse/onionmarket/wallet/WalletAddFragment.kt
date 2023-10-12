@@ -1,6 +1,7 @@
 package pnu.cse.onionmarket.wallet
 
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -11,10 +12,21 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import pnu.cse.onionmarket.MainActivity
+import pnu.cse.onionmarket.MainActivity.Companion.retrofitService
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.databinding.FragmentWalletAddBinding
+import pnu.cse.onionmarket.service.RetrofitService
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import java.util.UUID
+import java.util.regex.Pattern
 
 class WalletAddFragment : Fragment(R.layout.fragment_wallet_add) {
     private lateinit var binding: FragmentWalletAddBinding
@@ -44,8 +56,21 @@ class WalletAddFragment : Fragment(R.layout.fragment_wallet_add) {
 
         binding.submitButton.setOnClickListener {
 
-            if (binding.walletName.text.isNullOrEmpty() || binding.walletKey.text.isNullOrEmpty())
+            val walletPrivateKey = binding.walletKey.text.toString()
+
+            if (binding.walletName.text.isNullOrEmpty() || binding.walletKey.text.isNullOrEmpty()) {
                 Toast.makeText(context, "지갑 추가에 필요한 정보를 모두 입력해주세요.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+
+            val pattern = "^0x[a-fA-F0-9]{64}$"
+            val regex = Pattern.compile(pattern)
+
+            if(!regex.matcher( binding.walletKey.text.toString()).matches()) {
+                Toast.makeText(context, "지갑주소의 형태가 올바르지 않습니다.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
 
             val walletId = UUID.randomUUID().toString()
             val userId = Firebase.auth.currentUser?.uid
@@ -63,19 +88,38 @@ class WalletAddFragment : Fragment(R.layout.fragment_wallet_add) {
 
             })
 
-            val wallet = WalletItem(
-                walletId = walletId,
-                userId = userId,
-                walletName = binding.walletName.text.toString(),
-                walletImage = walletImage,
-                privateKey = binding.walletKey.text.toString(),
-                walletMoney = 0, // 지갑 연결 후 데이터 받아와서 수정하기
-                createdAt = System.currentTimeMillis()
-            )
 
-            Firebase.database.reference.child("Wallets").child(walletId).setValue(wallet)
-                .addOnSuccessListener {}
+            var walletMoney = "0"
+            var getMoney = false
 
+            val walletJob = CoroutineScope(Dispatchers.IO).async {
+                retrofitService.getWalletMoney(walletPrivateKey!!).execute().let { response ->
+                    if (response.isSuccessful) {
+                        walletMoney = response.body().toString().replace("ETH","").toDouble().times(2000000).toInt().toString()
+                        getMoney = true
+                    }
+                }
+                getMoney
+            }
+
+            runBlocking {
+                val walletResult = walletJob.await()
+
+                if (walletResult) {
+                    val wallet = WalletItem(
+                        walletId = walletId,
+                        userId = userId,
+                        walletName = binding.walletName.text.toString(),
+                        walletImage = walletImage,
+                        privateKey = walletPrivateKey,
+                        walletMoney = walletMoney,
+                        createdAt = System.currentTimeMillis()
+                    )
+
+                    Firebase.database.reference.child("Wallets").child(walletId).setValue(wallet)
+                        .addOnSuccessListener {}
+                }
+            }
             findNavController().popBackStack()
         }
     }

@@ -24,14 +24,32 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import pnu.cse.onionmarket.databinding.ActivityMainBinding
 import pnu.cse.onionmarket.home.HomeFragmentDirections
 import pnu.cse.onionmarket.payment.workmanager.DeliveryCheckWorker
+import pnu.cse.onionmarket.service.RetrofitService
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+
+    companion object {
+        val gson : Gson = GsonBuilder()
+            .setLenient()
+            .create()
+
+        val retrofit = Retrofit.Builder()
+            .baseUrl("http://43.201.103.235:8080")
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+
+        val retrofitService = retrofit.create(RetrofitService::class.java)
+    }
 
     override fun onResume() {
         super.onResume()

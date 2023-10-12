@@ -5,7 +5,7 @@ data class BlockchainPostItem(
     var userNickname: String? = null,
     var userPhone: String? = null,
     var postId: String? = null,
-    var postImagesUrl: List<String>? = null,
+    var postImageUrl: String? = null,
     var postTitle: String? = null,
     var postPrice: String? = null,
     var postContent: String? = null,

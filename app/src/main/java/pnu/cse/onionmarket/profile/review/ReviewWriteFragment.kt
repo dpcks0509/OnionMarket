@@ -8,7 +8,6 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import com.bumptech.glide.Glide
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
@@ -21,6 +20,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import pnu.cse.onionmarket.MainActivity
+import pnu.cse.onionmarket.MainActivity.Companion.retrofitService
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.UserItem
 import pnu.cse.onionmarket.chat.ChatItem
@@ -28,8 +28,8 @@ import pnu.cse.onionmarket.chat.detail.ChatDetailAdapter
 import pnu.cse.onionmarket.chat.detail.ChatDetailFragment
 import pnu.cse.onionmarket.chat.detail.ChatDetailItem
 import pnu.cse.onionmarket.databinding.FragmentReviewWriteBinding
-import pnu.cse.onionmarket.payment.SafePaymentFragmentDirections
 import pnu.cse.onionmarket.post.PostItem
+import pnu.cse.onionmarket.service.BlockchainReviewItem
 import java.io.IOException
 import java.util.UUID
 
@@ -53,7 +53,6 @@ class ReviewWriteFragment : Fragment(R.layout.fragment_review_write) {
     private var myUserId: String = Firebase.auth.currentUser?.uid!!
     private var myUserName: String = ""
     private var myUserProfileImage: String = ""
-
 
     override fun onResume() {
         super.onResume()
@@ -81,8 +80,8 @@ class ReviewWriteFragment : Fragment(R.layout.fragment_review_write) {
         postId = args.postId
         otherUserId = profileUserId
         var reviewStar = 0.0
-
-
+        var reviewText = ""
+        var createdAt = System.currentTimeMillis()
 
         binding.ratingBar.onRatingBarChangeListener =
             RatingBar.OnRatingBarChangeListener { ratingBar, rating, fromUser ->
@@ -125,6 +124,8 @@ class ReviewWriteFragment : Fragment(R.layout.fragment_review_write) {
                 return@setOnClickListener
             }
 
+            reviewText = binding.reviewText.text.toString()
+
             val chatRoomDB =
                 Firebase.database.reference.child("ChatRooms").child(userId!!).child(otherUserId)
 
@@ -135,15 +136,13 @@ class ReviewWriteFragment : Fragment(R.layout.fragment_review_write) {
                 } else {
                     chatRoomId = UUID.randomUUID().toString()
                 }
-                Log.e("chatRoomId",chatRoomId)
-                Log.e("otherUserId",otherUserId)
 
                 // 메세지 , 알림 보내기
                 val message = "<리뷰작성 알림>\n" +
                         "상품명 : [$postTitle]에 대한 리뷰가 작성되었습니다.\n\n" +
                         "작성자 : $myUserName\n" +
                         "리뷰 별점 : $reviewStar\n" +
-                        "리뷰 내용 : ${binding.reviewText.text}"
+                        "리뷰 내용 : $reviewText"
 
                 val lastMessageTime = System.currentTimeMillis()
 
@@ -246,11 +245,11 @@ class ReviewWriteFragment : Fragment(R.layout.fragment_review_write) {
 
                             val review = ReviewItem(
                                 reviewId = reviewId,
-                                createdAt = System.currentTimeMillis(),
+                                createdAt = createdAt,
                                 userId = profileUserId,
                                 userProfile = userProfileImage,
                                 userName = userName,
-                                reviewText = binding.reviewText.text.toString(),
+                                reviewText = reviewText,
                                 reviewStar = reviewStar
                             )
 
@@ -315,6 +314,27 @@ class ReviewWriteFragment : Fragment(R.layout.fragment_review_write) {
 
                     })
             }
+
+            retrofitService.saveReview(BlockchainReviewItem(
+                userId = otherUserId,
+                reviewId = reviewId,
+                reviewStar = reviewStar.toString(),
+                reviewText = reviewText,
+                writerNickname = myUserName,
+                createdAt = createdAt
+            )).enqueue(object: retrofit2.Callback<String> {
+                override fun onResponse(
+                    call: retrofit2.Call<String>,
+                    response: retrofit2.Response<String>
+                ) {
+                    val state = response.body().toString()
+                    Log.e("saveReview", state)
+                }
+
+                override fun onFailure(call: retrofit2.Call<String>, t: Throwable) {
+                    Log.e("saveReview", t.toString())
+                }
+            })
         }
 
         val reviewsRef = Firebase.database.reference.child("Reviews")

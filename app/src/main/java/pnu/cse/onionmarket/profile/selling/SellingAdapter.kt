@@ -21,8 +21,6 @@ class SellingAdapter(private val onClick: (PostItem) -> Unit) : ListAdapter<Post
     differ
 ) {
 
-    var sellingList = mutableListOf<PostItem>()
-
     inner class ViewHolder(private val binding: ItemPostBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
@@ -103,10 +101,10 @@ class SellingAdapter(private val onClick: (PostItem) -> Unit) : ListAdapter<Post
     }
 
     override fun getItemCount(): Int {
-        return sellingList.size
+        return currentList.size
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(sellingList[position])
+        holder.bind(currentList[position])
     }
 }

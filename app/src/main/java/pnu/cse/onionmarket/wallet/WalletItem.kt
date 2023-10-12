@@ -6,6 +6,6 @@ data class WalletItem(
     var walletName: String? = null,
     var walletImage: String? = null,
     var privateKey: String? = null,
-    var walletMoney: Int? = null,
+    var walletMoney: String? = null,
     var createdAt: Long? = null,
 )

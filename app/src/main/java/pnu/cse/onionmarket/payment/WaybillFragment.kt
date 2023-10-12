@@ -27,11 +27,16 @@ import com.skydoves.balloon.ArrowPositionRules
 import com.skydoves.balloon.Balloon
 import com.skydoves.balloon.BalloonAnimation
 import com.skydoves.balloon.BalloonSizeSpec
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import pnu.cse.onionmarket.MainActivity
+import pnu.cse.onionmarket.MainActivity.Companion.retrofitService
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.UserItem
 import pnu.cse.onionmarket.chat.ChatItem
@@ -69,17 +74,6 @@ class WaybillFragment : Fragment(R.layout.fragment_waybill) {
     private var transactionId: String = ""
 
     private var mContext: Context? = null
-
-    private val gson: Gson = GsonBuilder()
-        .setLenient()
-        .create()
-
-    private val retrofit = Retrofit.Builder()
-        .baseUrl("http://43.200.253.65:8080")
-        .addConverterFactory(GsonConverterFactory.create(gson))
-        .build()
-
-    private val retrofitService = retrofit.create(RetrofitService::class.java)
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -225,7 +219,10 @@ class WaybillFragment : Fragment(R.layout.fragment_waybill) {
 
                             if (transaction.deliveryArrived != true && !(transaction.waybillNumber.isNullOrEmpty())) {
                                 val deliveryCheckRequest =
-                                    PeriodicWorkRequestBuilder<DeliveryCheckWorker>(1, TimeUnit.HOURS)
+                                    PeriodicWorkRequestBuilder<DeliveryCheckWorker>(
+                                        1,
+                                        TimeUnit.HOURS
+                                    )
                                         .build()
 
                                 DeliveryCheckWorker.setData(transactionId)
@@ -294,307 +291,306 @@ class WaybillFragment : Fragment(R.layout.fragment_waybill) {
                 return@setOnClickListener
             }
 
+            var getDelivery = false
+            var validNumber = false
+            val deliveryJob = CoroutineScope(Dispatchers.IO).async {
+                retrofitService.deliveryCheck(
+                    code, binding.waybillNumber.text.toString()
+                ).execute().let { response ->
+                    if (response.isSuccessful) {
+                        val state = response.code().toString()
+
+                        if (state == "200")
+                            validNumber = true
+
+                        getDelivery = true
+                    }
+                    getDelivery
+                }
+            }
+
+            runBlocking {
+                val getResult = deliveryJob.await()
+
+                if (getResult) {
+                    val chatRoomDB =
+                        Firebase.database.reference.child("ChatRooms").child(userId!!)
+                            .child(otherUserId)
+
+                    chatRoomDB.get().addOnSuccessListener {
+
+                        if (it.value != null) {
+                            val chatRoom = it.getValue(ChatItem::class.java)
+                            chatRoomId = chatRoom?.chatRoomId!!
 
 
-            retrofitService.deliveryCheck(
-                code,
-                binding.waybillNumber.text.toString()
-            ).enqueue(object : retrofit2.Callback<String> {
-                override fun onResponse(
-                    call: retrofit2.Call<String>,
-                    response: retrofit2.Response<String>
-                ) {
-                    val state = response.code().toString()
+                        } else {
+                            chatRoomId = UUID.randomUUID().toString()
+                        }
+                        // 메세지 , 알림 보내기
+                        val message = "<운송장정보 등록 알림>\n" +
+                                "택배사 : ${company}\n" +
+                                "운송장 번호 : ${binding.waybillNumber.text}\n\n" +
+                                " 택배 도착후 3일 이내에\n" +
+                                " 구매확정 버튼을 누르지 않을시\n" +
+                                " 자동으로 결제가 완료됩니다."
 
-                    var valid = false
+                        val lastMessageTime = System.currentTimeMillis()
 
-                    if (state == "200")
-                        valid = true
+                        val newChatRoom = ChatItem(
+                            chatRoomId = chatRoomId,
+                            otherUserId = otherUserId,
+                            otherUserProfile = otherUserProfileImage,
+                            otherUserName = otherUserName,
+                            lastMessage = message,
+                            lastMessageTime = lastMessageTime
+                        )
 
-                    if (valid) {
-                        val chatRoomDB =
-                            Firebase.database.reference.child("ChatRooms").child(userId!!)
-                                .child(otherUserId)
+                        if (it.value == null)
+                            chatRoomDB.setValue(newChatRoom)
 
-                        chatRoomDB.get().addOnSuccessListener {
+                        val newChatItem = ChatDetailItem(
+                            message = message,
+                            userId = userId,
+                            userProfile = myUserProfileImage
+                        )
 
-                            if (it.value != null) {
-                                val chatRoom = it.getValue(ChatItem::class.java)
-                                chatRoomId = chatRoom?.chatRoomId!!
-
-
-                            } else {
-                                chatRoomId = UUID.randomUUID().toString()
-                            }
-                            // 메세지 , 알림 보내기
-                            val message = "<운송장정보 등록 알림>\n" +
-                                    "택배사 : ${company}\n" +
-                                    "운송장 번호 : ${binding.waybillNumber.text}\n\n" +
-                                    " 택배 도착후 3일 이내에\n" +
-                                    " 구매확정 버튼을 누르지 않을시\n" +
-                                    " 자동으로 결제가 완료됩니다."
-
-                            val lastMessageTime = System.currentTimeMillis()
-
-                            val newChatRoom = ChatItem(
-                                chatRoomId = chatRoomId,
-                                otherUserId = otherUserId,
-                                otherUserProfile = otherUserProfileImage,
-                                otherUserName = otherUserName,
-                                lastMessage = message,
-                                lastMessageTime = lastMessageTime
-                            )
-
-                            if(it.value == null)
-                                chatRoomDB.setValue(newChatRoom)
-
-                            val newChatItem = ChatDetailItem(
-                                message = message,
-                                userId = userId,
-                                userProfile = myUserProfileImage
-                            )
-
-                            Firebase.database.reference.child("ChatRooms").child(otherUserId)
-                                .child(myUserId!!)
-                                .addValueEventListener(object : ValueEventListener {
-                                    override fun onDataChange(snapshot: DataSnapshot) {
-                                        if (snapshot.exists())
-                                            ChatDetailFragment.unreadMessage =
-                                                snapshot.child("unreadMessage")
-                                                    .getValue(Int::class.java)!!
-                                    }
-
-                                    override fun onCancelled(error: DatabaseError) {
-                                    }
-                                })
-
-                            ChatDetailFragment.unreadMessage += 1
-
-                            chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
-
-                            Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId).child("chats").push().apply{
-                                newChatItem.chatId = key
-                                setValue(newChatItem)
-                            }
-                            Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId).child("chats").push().apply{
-                                newChatItem.chatId = key
-                                setValue(newChatItem)
-                            }
-
-                            val updates: MutableMap<String, Any> = hashMapOf(
-                                "ChatRooms/$otherUserId/$userId/lastMessage" to message,
-                                "ChatRooms/$otherUserId/$userId/chatRoomId" to chatRoomId,
-                                "ChatRooms/$otherUserId/$userId/otherUserId" to userId,
-                                "ChatRooms/$otherUserId/$userId/otherUserName" to myUserName,
-                                "ChatRooms/$otherUserId/$userId/otherUserProfile" to myUserProfileImage,
-                                "ChatRooms/$otherUserId/$userId/unreadMessage" to ChatDetailFragment.unreadMessage,
-                                "ChatRooms/$otherUserId/$userId/lastMessageTime" to lastMessageTime,
-                                "Transactions/$transactionId/waybillCompanyPosition" to companyPosition,
-                                "Transactions/$transactionId/waybillCompany" to company,
-                                "Transactions/$transactionId/waybillCompanyCode" to code,
-                                "Transactions/$transactionId/waybillNumber" to binding.waybillNumber.text.toString()
-                            )
-
-                            Firebase.database.reference.updateChildren(updates)
-
-                            val client = OkHttpClient()
-                            val root = JSONObject()
-                            val notification = JSONObject()
-                            notification.put("title", myUserName)
-                            notification.put("body", message)
-                            notification.put("chatRoomId", chatRoomId)
-                            notification.put("otherUserId", userId)
-
-                            root.put("to", otherUserToken)
-                            root.put("priority", "high")
-                            root.put("data", notification)
-
-                            val requestBody =
-                                root.toString()
-                                    .toRequestBody("application/json; charset=utf-8".toMediaType())
-                            val request =
-                                Request.Builder().post(requestBody)
-                                    .url("https://fcm.googleapis.com/fcm/send")
-                                    .header(
-                                        "Authorization",
-                                        "key=${getString(R.string.fcm_server_key)}"
-                                    )
-                                    .build()
-                            client.newCall(request).enqueue(object : Callback {
-                                override fun onFailure(call: Call, e: IOException) {
-
+                        Firebase.database.reference.child("ChatRooms").child(otherUserId)
+                            .child(myUserId!!)
+                            .addValueEventListener(object : ValueEventListener {
+                                override fun onDataChange(snapshot: DataSnapshot) {
+                                    if (snapshot.exists())
+                                        ChatDetailFragment.unreadMessage =
+                                            snapshot.child("unreadMessage")
+                                                .getValue(Int::class.java)!!
                                 }
 
-                                override fun onResponse(call: Call, response: Response) {
+                                override fun onCancelled(error: DatabaseError) {
                                 }
-
                             })
 
-                            val action =
-                                WaybillFragmentDirections.actionWaybillFragmentToChatDetailFragment(
-                                    chatRoomId = chatRoomId,
-                                    otherUserId = otherUserId
-                                )
-                            findNavController().navigate(action)
+                        ChatDetailFragment.unreadMessage += 1
+
+                        chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
+
+                        Firebase.database.reference.child("ChatRooms").child(userId)
+                            .child(otherUserId).child("chats").push().apply {
+                            newChatItem.chatId = key
+                            setValue(newChatItem)
                         }
-                    } else {
-                        Toast.makeText(context, "유효하지 않은 운송장입니다.", Toast.LENGTH_SHORT).show()
+                        Firebase.database.reference.child("ChatRooms").child(otherUserId)
+                            .child(userId).child("chats").push().apply {
+                            newChatItem.chatId = key
+                            setValue(newChatItem)
+                        }
+
+                        val updates: MutableMap<String, Any> = hashMapOf(
+                            "ChatRooms/$otherUserId/$userId/lastMessage" to message,
+                            "ChatRooms/$otherUserId/$userId/chatRoomId" to chatRoomId,
+                            "ChatRooms/$otherUserId/$userId/otherUserId" to userId,
+                            "ChatRooms/$otherUserId/$userId/otherUserName" to myUserName,
+                            "ChatRooms/$otherUserId/$userId/otherUserProfile" to myUserProfileImage,
+                            "ChatRooms/$otherUserId/$userId/unreadMessage" to ChatDetailFragment.unreadMessage,
+                            "ChatRooms/$otherUserId/$userId/lastMessageTime" to lastMessageTime,
+                            "Transactions/$transactionId/waybillCompanyPosition" to companyPosition,
+                            "Transactions/$transactionId/waybillCompany" to company,
+                            "Transactions/$transactionId/waybillCompanyCode" to code,
+                            "Transactions/$transactionId/waybillNumber" to binding.waybillNumber.text.toString()
+                        )
+
+                        Firebase.database.reference.updateChildren(updates)
+
+                        val client = OkHttpClient()
+                        val root = JSONObject()
+                        val notification = JSONObject()
+                        notification.put("title", myUserName)
+                        notification.put("body", message)
+                        notification.put("chatRoomId", chatRoomId)
+                        notification.put("otherUserId", userId)
+
+                        root.put("to", otherUserToken)
+                        root.put("priority", "high")
+                        root.put("data", notification)
+
+                        val requestBody =
+                            root.toString()
+                                .toRequestBody("application/json; charset=utf-8".toMediaType())
+                        val request =
+                            Request.Builder().post(requestBody)
+                                .url("https://fcm.googleapis.com/fcm/send")
+                                .header(
+                                    "Authorization",
+                                    "key=${getString(R.string.fcm_server_key)}"
+                                )
+                                .build()
+                        client.newCall(request).enqueue(object : Callback {
+                            override fun onFailure(call: Call, e: IOException) {
+
+                            }
+
+                            override fun onResponse(call: Call, response: Response) {
+                            }
+
+                        })
+
+                        val action =
+                            WaybillFragmentDirections.actionWaybillFragmentToChatDetailFragment(
+                                chatRoomId = chatRoomId,
+                                otherUserId = otherUserId
+                            )
+                        findNavController().navigate(action)
                     }
                 }
-
-                override fun onFailure(
-                    call: retrofit2.Call<String>,
-                    t: Throwable
-                ) {
-                    Log.e("error", t.toString())
+                else {
+                    Toast.makeText(context, "유효하지 않은 운송장입니다.", Toast.LENGTH_SHORT).show()
                 }
+            }
+    }
+}
 
-            })
+private fun getChatData() {
+    Firebase.database.reference.child("ChatRooms").child(myUserId).child(otherUserId).child("chats")
+        .addChildEventListener(object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                val chatDetailItem = snapshot.getValue(ChatDetailItem::class.java)
+                chatDetailItem ?: return
 
+                chatDetailItemList.add(chatDetailItem)
+                chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
+
+            override fun onChildRemoved(snapshot: DataSnapshot) {}
+
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+
+            override fun onCancelled(error: DatabaseError) {}
+
+        })
+}
+
+private fun getOtherUserData() {
+    Firebase.database.reference.child("Users").child(otherUserId!!).get()
+        .addOnSuccessListener {
+            val otherUserItem = it.getValue(UserItem::class.java)
+            chatDetailAdapter.otherUserItem = otherUserItem
+            otherUserName = otherUserItem?.userNickname.toString()
+            otherUserToken = otherUserItem?.userToken.orEmpty()
+            otherUserProfileImage = otherUserItem?.userProfileImage.orEmpty()
+            getChatData()
         }
-    }
+}
 
-    private fun getChatData() {
-        Firebase.database.reference.child("ChatRooms").child(myUserId).child(otherUserId).child("chats")
-            .addChildEventListener(object : ChildEventListener {
-                override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                    val chatDetailItem = snapshot.getValue(ChatDetailItem::class.java)
-                    chatDetailItem ?: return
+fun sendChat(message: String) {
+    val chatRoomDB =
+        Firebase.database.reference.child("ChatRooms").child(myUserId!!).child(otherUserId)
 
-                    chatDetailItemList.add(chatDetailItem)
-                    chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
-                }
-
-                override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
-
-                override fun onChildRemoved(snapshot: DataSnapshot) {}
-
-                override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
-
-                override fun onCancelled(error: DatabaseError) {}
-
-            })
-    }
-
-    private fun getOtherUserData() {
-        Firebase.database.reference.child("Users").child(otherUserId!!).get()
-            .addOnSuccessListener {
-                val otherUserItem = it.getValue(UserItem::class.java)
-                chatDetailAdapter.otherUserItem = otherUserItem
-                otherUserName = otherUserItem?.userNickname.toString()
-                otherUserToken = otherUserItem?.userToken.orEmpty()
-                otherUserProfileImage = otherUserItem?.userProfileImage.orEmpty()
-                getChatData()
-            }
-    }
-
-    fun sendChat(message: String) {
-        val chatRoomDB =
-            Firebase.database.reference.child("ChatRooms").child(myUserId!!).child(otherUserId)
-
-        chatRoomDB.get().addOnSuccessListener {
-            if (it.value != null) {
-                val chatRoom = it.getValue(ChatItem::class.java)
-                chatRoomId = chatRoom?.chatRoomId!!
-            } else {
-                chatRoomId = UUID.randomUUID().toString()
-            }
-
-            val lastMessageTime = System.currentTimeMillis()
-
-            val newChatRoom = ChatItem(
-                chatRoomId = chatRoomId,
-                otherUserId = otherUserId,
-                otherUserProfile = otherUserProfileImage,
-                otherUserName = otherUserName,
-                lastMessage = message,
-                lastMessageTime = lastMessageTime
-            )
-
-            if(it.value == null)
-                chatRoomDB.setValue(newChatRoom)
-
-            // 메세지 , 알림 보내기
-            val newChatItem = ChatDetailItem(
-                message = message,
-                userId = otherUserId,
-                userProfile = otherUserProfileImage
-            )
-
-            Firebase.database.reference.child("ChatRooms")
-                .child(myUserId).child(otherUserId!!)
-                .addValueEventListener(object : ValueEventListener {
-                    override fun onDataChange(snapshot: DataSnapshot) {
-                        if (snapshot.exists())
-                            ChatDetailFragment.unreadMessage =
-                                snapshot.child("unreadMessage")
-                                    .getValue(Int::class.java)!!
-                    }
-
-                    override fun onCancelled(error: DatabaseError) {
-                    }
-                })
-
-            ChatDetailFragment.unreadMessage += 1
-
-            chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
-
-            Firebase.database.reference.child("ChatRooms").child(myUserId).child(otherUserId).child("chats").push().apply{
-                newChatItem.chatId = key
-                setValue(newChatItem)
-            }
-            Firebase.database.reference.child("ChatRooms").child(otherUserId).child(myUserId).child("chats").push().apply{
-                newChatItem.chatId = key
-                setValue(newChatItem)
-            }
-
-            val updates: MutableMap<String, Any> = hashMapOf(
-                "ChatRooms/$myUserId/$otherUserId/lastMessage" to message,
-                "ChatRooms/$myUserId/$otherUserId/chatRoomId" to chatRoomId,
-                "ChatRooms/$myUserId/$otherUserId/otherUserId" to otherUserId,
-                "ChatRooms/$myUserId/$otherUserId/otherUserName" to otherUserName,
-                "ChatRooms/$myUserId/$otherUserId/otherUserProfile" to otherUserProfileImage,
-                "ChatRooms/$myUserId/$otherUserId/unreadMessage" to ChatDetailFragment.unreadMessage,
-                "ChatRooms/$myUserId/$otherUserId/lastMessageTime" to lastMessageTime
-            )
-
-            Firebase.database.reference.updateChildren(updates)
-
-            val client = OkHttpClient()
-            val root = JSONObject()
-            val notification = JSONObject()
-            notification.put("title", otherUserName)
-            notification.put("body", message)
-            notification.put("chatRoomId", chatRoomId)
-            notification.put("otherUserId", otherUserId)
-
-            root.put("to", otherUserToken)
-            root.put("priority", "high")
-            root.put("data", notification)
-
-            val requestBody =
-                root.toString()
-                    .toRequestBody("application/json; charset=utf-8".toMediaType())
-            val request =
-                Request.Builder().post(requestBody)
-                    .url("https://fcm.googleapis.com/fcm/send")
-                    .header(
-                        "Authorization",
-                        "key=${mContext?.getString(R.string.fcm_server_key)}"
-                    )
-                    .build()
-            client.newCall(request).enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-
-                }
-
-                override fun onResponse(
-                    call: Call,
-                    response: Response
-                ) {
-                }
-
-            })
+    chatRoomDB.get().addOnSuccessListener {
+        if (it.value != null) {
+            val chatRoom = it.getValue(ChatItem::class.java)
+            chatRoomId = chatRoom?.chatRoomId!!
+        } else {
+            chatRoomId = UUID.randomUUID().toString()
         }
+
+        val lastMessageTime = System.currentTimeMillis()
+
+        val newChatRoom = ChatItem(
+            chatRoomId = chatRoomId,
+            otherUserId = otherUserId,
+            otherUserProfile = otherUserProfileImage,
+            otherUserName = otherUserName,
+            lastMessage = message,
+            lastMessageTime = lastMessageTime
+        )
+
+        if (it.value == null)
+            chatRoomDB.setValue(newChatRoom)
+
+        // 메세지 , 알림 보내기
+        val newChatItem = ChatDetailItem(
+            message = message,
+            userId = otherUserId,
+            userProfile = otherUserProfileImage
+        )
+
+        Firebase.database.reference.child("ChatRooms")
+            .child(myUserId).child(otherUserId!!)
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (snapshot.exists())
+                        ChatDetailFragment.unreadMessage =
+                            snapshot.child("unreadMessage")
+                                .getValue(Int::class.java)!!
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                }
+            })
+
+        ChatDetailFragment.unreadMessage += 1
+
+        chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
+
+        Firebase.database.reference.child("ChatRooms").child(myUserId).child(otherUserId)
+            .child("chats").push().apply {
+            newChatItem.chatId = key
+            setValue(newChatItem)
+        }
+        Firebase.database.reference.child("ChatRooms").child(otherUserId).child(myUserId)
+            .child("chats").push().apply {
+            newChatItem.chatId = key
+            setValue(newChatItem)
+        }
+
+        val updates: MutableMap<String, Any> = hashMapOf(
+            "ChatRooms/$myUserId/$otherUserId/lastMessage" to message,
+            "ChatRooms/$myUserId/$otherUserId/chatRoomId" to chatRoomId,
+            "ChatRooms/$myUserId/$otherUserId/otherUserId" to otherUserId,
+            "ChatRooms/$myUserId/$otherUserId/otherUserName" to otherUserName,
+            "ChatRooms/$myUserId/$otherUserId/otherUserProfile" to otherUserProfileImage,
+            "ChatRooms/$myUserId/$otherUserId/unreadMessage" to ChatDetailFragment.unreadMessage,
+            "ChatRooms/$myUserId/$otherUserId/lastMessageTime" to lastMessageTime
+        )
+
+        Firebase.database.reference.updateChildren(updates)
+
+        val client = OkHttpClient()
+        val root = JSONObject()
+        val notification = JSONObject()
+        notification.put("title", otherUserName)
+        notification.put("body", message)
+        notification.put("chatRoomId", chatRoomId)
+        notification.put("otherUserId", otherUserId)
+
+        root.put("to", otherUserToken)
+        root.put("priority", "high")
+        root.put("data", notification)
+
+        val requestBody =
+            root.toString()
+                .toRequestBody("application/json; charset=utf-8".toMediaType())
+        val request =
+            Request.Builder().post(requestBody)
+                .url("https://fcm.googleapis.com/fcm/send")
+                .header(
+                    "Authorization",
+                    "key=${mContext?.getString(R.string.fcm_server_key)}"
+                )
+                .build()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+
+            }
+
+            override fun onResponse(
+                call: Call,
+                response: Response
+            ) {
+            }
+
+        })
     }
+}
 }

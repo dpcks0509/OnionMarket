@@ -1,7 +1,5 @@
 package pnu.cse.onionmarket.profile
 
-import android.app.AlertDialog
-import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -12,9 +10,6 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
-import com.google.android.gms.tasks.Task
-import com.google.android.gms.tasks.Tasks
-import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.database.DataSnapshot
@@ -22,9 +17,13 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
-import com.google.firebase.storage.ktx.storage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import pnu.cse.onionmarket.LoginActivity
 import pnu.cse.onionmarket.MainActivity
+import pnu.cse.onionmarket.MainActivity.Companion.retrofitService
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.chat.ChatItem
 import pnu.cse.onionmarket.databinding.FragmentProfileBinding
@@ -32,6 +31,7 @@ import pnu.cse.onionmarket.post.PostItem
 import pnu.cse.onionmarket.profile.review.ReviewFragment
 import pnu.cse.onionmarket.profile.review.ReviewItem
 import pnu.cse.onionmarket.profile.selling.SellingFragment
+import pnu.cse.onionmarket.service.BlockchainReviewItem
 import java.util.*
 
 class ProfileFragment : Fragment(R.layout.fragment_profile) {
@@ -41,11 +41,11 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         super.onViewCreated(view, savedInstanceState)
         binding = FragmentProfileBinding.bind(view)
 
-
         val userId = Firebase.auth.currentUser?.uid
 
-        val writerId = arguments?.getString("writerId")
+        var writerId = arguments?.getString("writerId")
         val postId = arguments?.getString("postId")
+        val fromBlockchain = arguments?.getBoolean("fromBlockchain")
 
         binding.settingButton.setOnClickListener {
             var popupMenu = PopupMenu(context, it)
@@ -101,84 +101,52 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         binding.sellingPost.setTextSize(TypedValue.COMPLEX_UNIT_PX, reviewTextPx)
         binding.review.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray))
 
+        var blockchainReviewList = mutableListOf<BlockchainReviewItem>()
+
         var userReviewSum = 0.0
         var userReviewNumber = 0
         var userReviewStar = 0.0
 
-        // users star 업데이트
-        Firebase.database.reference.child("Reviews")
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    userReviewSum = 0.0
-                    userReviewNumber = 0
-                    userReviewStar = 0.0
+        if(fromBlockchain == true) {
+            binding.profileText.text = "블록체인 프로필"
 
-                    snapshot.children.map {
-                        val review = it.getValue(ReviewItem::class.java)
-                        review ?: return
+            var getReview = false
+            val reviewJob = CoroutineScope(Dispatchers.IO).async {
+                retrofitService.getReviews(writerId!!).execute().let { response ->
+                    if(response.isSuccessful) {
+                        blockchainReviewList = response.body()?.toMutableList()!!
+                        getReview = true
+                    }
+                }
+                getReview
+            }
 
-                        if (review.userId == userId) {
-                            userReviewSum += review.reviewStar!!
-                            userReviewNumber += 1
+            runBlocking {
+                val getResult = reviewJob.await()
+
+                if(getResult) {
+                    for(blockchainReview in blockchainReviewList) {
+                        val review = ReviewItem(
+                            reviewId = blockchainReview.reviewId,
+                            createdAt = blockchainReview.createdAt,
+                            userId = blockchainReview.userId,
+                            userProfile = null,
+                            userName = blockchainReview.writerNickname,
+                            reviewText = blockchainReview.reviewText,
+                            reviewStar = blockchainReview.reviewStar?.toDouble()
+                        )
+                        userReviewSum += review.reviewStar!!
+                        userReviewNumber += 1
+
+                        if (userReviewNumber != 0) {
+                            userReviewStar = (userReviewSum / userReviewNumber)
+                            userReviewStar =
+                                String.format("%.1f", userReviewStar).toDouble()
+
                         }
                     }
-                    if (userReviewNumber != 0) {
-                        userReviewStar = (userReviewSum / userReviewNumber)
-                        userReviewStar =
-                            String.format("%.1f", userReviewStar).toDouble()
-                    }
-
-                    val update: MutableMap<String, Any> = hashMapOf(
-                        "Users/$userId/userStar" to userReviewStar
-                    )
-
-                    Firebase.database.reference.updateChildren(update)
-
-
                 }
-
-                override fun onCancelled(error: DatabaseError) {}
-
-            })
-
-        if (writerId.isNullOrEmpty()) {
-            val mainActivity = activity as MainActivity
-            mainActivity.hideBottomNavigation(false)
-
-            binding.backButton.visibility = View.INVISIBLE
-            binding.settingButton.visibility = View.VISIBLE
-            binding.profileChatButton.visibility = View.GONE
-
-            Firebase.database.reference.child("Users").child(userId!!)
-                .addValueEventListener(object : ValueEventListener {
-                    override fun onDataChange(snapshot: DataSnapshot) {
-                        val userImageUri =
-                            snapshot.child("userProfileImage").getValue(String::class.java)
-                        if (userImageUri.isNullOrEmpty())
-                            Glide.with(binding.userImage)
-                                .load(R.drawable.app_logo)
-                                .into(binding.userImage)
-                        else
-                            Glide.with(binding.userImage)
-                                .load(userImageUri)
-                                .into(binding.userImage)
-
-                        binding.userNickname.text =
-                            snapshot.child("userNickname").getValue(String::class.java)
-                        binding.userStar.text =
-                            snapshot.child("userStar").getValue(Double::class.java).toString()
-                    }
-
-                    override fun onCancelled(error: DatabaseError) {}
-                })
-        } else {
-            val mainActivity = activity as MainActivity
-            mainActivity.hideBottomNavigation(true)
-
-            binding.backButton.visibility = View.VISIBLE
-            binding.settingButton.visibility = View.INVISIBLE
-            binding.profileChatButton.visibility = View.VISIBLE
-
+            }
             Firebase.database.reference.child("Users").child(writerId!!)
                 .addValueEventListener(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
@@ -193,15 +161,115 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                                 .load(userImageUri)
                                 .into(binding.userImage)
 
-
                         binding.userNickname.text =
                             snapshot.child("userNickname").getValue(String::class.java)
-                        binding.userStar.text =
-                            snapshot.child("userStar").getValue(Double::class.java).toString()
                     }
 
                     override fun onCancelled(error: DatabaseError) {}
                 })
+
+            binding.userStar.text = userReviewStar.toString()
+        } else {
+            // users star 업데이트
+            Firebase.database.reference.child("Reviews")
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        userReviewSum = 0.0
+                        userReviewNumber = 0
+                        userReviewStar = 0.0
+
+                        snapshot.children.map {
+                            val review = it.getValue(ReviewItem::class.java)
+                            review ?: return
+
+                            if (review.userId == userId) {
+                                userReviewSum += review.reviewStar!!
+                                userReviewNumber += 1
+                            }
+                        }
+                        if (userReviewNumber != 0) {
+                            userReviewStar = (userReviewSum / userReviewNumber)
+                            userReviewStar =
+                                String.format("%.1f", userReviewStar).toDouble()
+                        }
+
+                        val update: MutableMap<String, Any> = hashMapOf(
+                            "Users/$userId/userStar" to userReviewStar
+                        )
+
+                        Firebase.database.reference.updateChildren(update)
+                        if(writerId == null)
+                            writerId = userId
+
+                        Firebase.database.reference.child("Users").child(writerId!!)
+                            .addValueEventListener(object : ValueEventListener {
+                                override fun onDataChange(snapshot: DataSnapshot) {
+                                    val userImageUri =
+                                        snapshot.child("userProfileImage").getValue(String::class.java)
+                                    if (userImageUri.isNullOrEmpty())
+                                        Glide.with(binding.userImage)
+                                            .load(R.drawable.app_logo)
+                                            .into(binding.userImage)
+                                    else
+                                        Glide.with(binding.userImage)
+                                            .load(userImageUri)
+                                            .into(binding.userImage)
+
+
+                                    binding.userNickname.text =
+                                        snapshot.child("userNickname").getValue(String::class.java)
+                                    binding.userStar.text =
+                                        snapshot.child("userStar").getValue(Double::class.java).toString()
+                                }
+
+                                override fun onCancelled(error: DatabaseError) {}
+                            })
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {}
+
+                })
+        }
+
+        if (writerId.isNullOrEmpty()) {
+            val mainActivity = activity as MainActivity
+            mainActivity.hideBottomNavigation(false)
+
+            binding.backButton.visibility = View.INVISIBLE
+            binding.settingButton.visibility = View.VISIBLE
+            binding.profileChatButton.visibility = View.GONE
+
+            binding.sellingPost.setOnClickListener {
+                val sellingFragment = SellingFragment.newInstance(null)
+                childFragmentManager.beginTransaction()
+                    .replace(R.id.myPageFrameLayout, sellingFragment)
+                    .commit()
+
+                binding.sellingPost.setTextColor(
+                    ContextCompat.getColor(
+                        requireContext(),
+                        R.color.black
+                    )
+                )
+                binding.review.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray))
+            }
+
+            binding.review.setOnClickListener {
+                val reviewFragment = ReviewFragment.newInstance(null)
+                childFragmentManager.beginTransaction()
+                    .replace(R.id.myPageFrameLayout, reviewFragment)
+                    .commit()
+
+                binding.sellingPost.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray))
+                binding.review.setTextColor(ContextCompat.getColor(requireContext(), R.color.black))
+            }
+        } else {
+            val mainActivity = activity as MainActivity
+            mainActivity.hideBottomNavigation(true)
+
+            binding.backButton.visibility = View.VISIBLE
+            binding.settingButton.visibility = View.INVISIBLE
+            binding.profileChatButton.visibility = View.VISIBLE
 
             binding.backButton.setOnClickListener {
                 if (postId.isNullOrEmpty()) {
@@ -209,7 +277,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                 } else {
                     val action =
                         ProfileFragmentDirections.actionProfileFragmentToPostDetailFragment(
-                            writerId = writerId,
+                            writerId = writerId!!,
                             postId = postId
                         )
                     findNavController().navigate(action)
@@ -229,7 +297,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                 binding.profileChatButton.setOnClickListener {
                     val chatRoomDB =
                         Firebase.database.reference.child("ChatRooms").child(userId!!)
-                            .child(writerId)
+                            .child(writerId!!)
                     var chatRoomId = ""
 
                     chatRoomDB.get().addOnSuccessListener {
@@ -241,7 +309,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                             val action =
                                 ProfileFragmentDirections.actionProfileFragmentToChatDetailFragment(
                                     chatRoomId = chatRoomId,
-                                    otherUserId = writerId
+                                    otherUserId = writerId!!
                                 )
                             findNavController().navigate(action)
                         } else {
@@ -266,41 +334,41 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                             val action =
                                 ProfileFragmentDirections.actionProfileFragmentToChatDetailFragment(
                                     chatRoomId = chatRoomId,
-                                    otherUserId = writerId
+                                    otherUserId = writerId!!
                                 )
                             findNavController().navigate(action)
                         }
                     }
                 }
             }
+            binding.sellingPost.setOnClickListener {
+                val sellingFragment = SellingFragment.newInstance(writerId!!)
+                childFragmentManager.beginTransaction()
+                    .replace(R.id.myPageFrameLayout, sellingFragment)
+                    .commit()
+
+                binding.sellingPost.setTextColor(
+                    ContextCompat.getColor(
+                        requireContext(),
+                        R.color.black
+                    )
+                )
+                binding.review.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray))
+            }
+
+            binding.review.setOnClickListener {
+                val reviewFragment = ReviewFragment.newInstance(writerId)
+                childFragmentManager.beginTransaction()
+                    .replace(R.id.myPageFrameLayout, reviewFragment)
+                    .commit()
+
+                binding.sellingPost.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray))
+                binding.review.setTextColor(ContextCompat.getColor(requireContext(), R.color.black))
+            }
         }
         val sellingFragment = SellingFragment.newInstance(writerId)
         childFragmentManager.beginTransaction()
             .replace(R.id.myPageFrameLayout, sellingFragment)
             .commit()
-
-        binding.sellingPost.setOnClickListener {
-            childFragmentManager.beginTransaction()
-                .replace(R.id.myPageFrameLayout, sellingFragment)
-                .commit()
-
-            binding.sellingPost.setTextColor(
-                ContextCompat.getColor(
-                    requireContext(),
-                    R.color.black
-                )
-            )
-            binding.review.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray))
-        }
-
-        binding.review.setOnClickListener {
-            val reviewFragment = ReviewFragment.newInstance(writerId)
-            childFragmentManager.beginTransaction()
-                .replace(R.id.myPageFrameLayout, reviewFragment)
-                .commit()
-
-            binding.sellingPost.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray))
-            binding.review.setTextColor(ContextCompat.getColor(requireContext(), R.color.black))
-        }
     }
 }

@@ -1,11 +1,14 @@
 package pnu.cse.onionmarket.profile.review
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.databinding.ItemReviewBinding
 

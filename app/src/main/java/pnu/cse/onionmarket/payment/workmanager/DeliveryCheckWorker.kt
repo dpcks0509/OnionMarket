@@ -12,6 +12,7 @@ import com.google.firebase.ktx.Firebase
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import kotlinx.coroutines.*
+import pnu.cse.onionmarket.MainActivity.Companion.retrofitService
 import pnu.cse.onionmarket.payment.transaction.TransactionItem
 import pnu.cse.onionmarket.service.RetrofitService
 import retrofit2.Retrofit
@@ -20,16 +21,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 class DeliveryCheckWorker(context: Context, workerParams: WorkerParameters) : Worker(context,
     workerParams
 ) {
-    private val gson : Gson = GsonBuilder()
-        .setLenient()
-        .create()
 
-    private val retrofit = Retrofit.Builder()
-        .baseUrl("http://43.200.253.65:8080")
-        .addConverterFactory(GsonConverterFactory.create(gson))
-        .build()
-
-    private val retrofitService = retrofit.create(RetrofitService::class.java)
 
     override fun doWork(): Result {
         Log.e("DeliveryCheckWorker","DeliveryCheckWorker")
