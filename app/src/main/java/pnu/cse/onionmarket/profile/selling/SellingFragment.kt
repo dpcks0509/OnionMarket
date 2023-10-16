@@ -1,7 +1,6 @@
 package pnu.cse.onionmarket.profile.selling
 
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
@@ -23,7 +22,7 @@ import pnu.cse.onionmarket.post.PostItem
 import pnu.cse.onionmarket.profile.ProfileFragmentDirections
 import pnu.cse.onionmarket.service.BlockchainPostItem
 
-class SellingFragment: Fragment(R.layout.fragment_selling) {
+class SellingFragment : Fragment(R.layout.fragment_selling) {
     private lateinit var binding: FragmentSellingBinding
     private lateinit var sellingAdapter: SellingAdapter
 
@@ -48,7 +47,6 @@ class SellingFragment: Fragment(R.layout.fragment_selling) {
         binding = FragmentSellingBinding.bind(view)
 
         arguments?.let {
-            // Retrieve the writerId from the arguments bundle
             writerId = it.getString("writerId")
         }
 
@@ -61,7 +59,7 @@ class SellingFragment: Fragment(R.layout.fragment_selling) {
             findNavController().navigate(action)
         }
 
-        if(writerId == null) {
+        if (writerId == null) {
             sellingList = mutableListOf()
             blockchainSellingList = mutableListOf()
 
@@ -74,13 +72,13 @@ class SellingFragment: Fragment(R.layout.fragment_selling) {
                             val post = it.getValue(PostItem::class.java)
                             post ?: return
 
-                            if(post.writerId == userId)
+                            if (post.writerId == userId)
                                 sellingList.add(post)
                         }
                         sellingList.sortByDescending { it.createdAt }
                         sellingAdapter.submitList(sellingList)
 
-                        if(sellingList.isEmpty()) {
+                        if (sellingList.isEmpty()) {
                             binding.noSelling.visibility = View.VISIBLE
                         } else {
                             binding.noSelling.visibility = View.GONE
@@ -96,7 +94,7 @@ class SellingFragment: Fragment(R.layout.fragment_selling) {
             var getPost = false
             val postJob = CoroutineScope(Dispatchers.IO).async {
                 retrofitService.getPosts(writerId!!).execute().let { response ->
-                    if(response.isSuccessful) {
+                    if (response.isSuccessful) {
                         blockchainSellingList = response.body()?.toMutableList()!!
                         getPost = true
                     }
@@ -107,8 +105,8 @@ class SellingFragment: Fragment(R.layout.fragment_selling) {
             runBlocking {
                 val getResult = postJob.await()
 
-                if(getResult) {
-                    for(blockchainPost in blockchainSellingList) {
+                if (getResult) {
+                    for (blockchainPost in blockchainSellingList) {
                         val postImageUrl = blockchainPost.postImageUrl?.removeSurrounding("[", "]")
                             ?.split(", ")
                             ?.map { it.trim() }
@@ -129,7 +127,7 @@ class SellingFragment: Fragment(R.layout.fragment_selling) {
                             writerPhone = blockchainPost.userPhone,
                             writerStar = null,
                             buyerId = "",
-                            reviewWrite =  null
+                            reviewWrite = null
                         )
                         sellingList.add(post)
                     }
@@ -140,7 +138,7 @@ class SellingFragment: Fragment(R.layout.fragment_selling) {
         sellingList.sortByDescending { it.createdAt }
         sellingAdapter.submitList(sellingList)
 
-        if(sellingList.isEmpty()) {
+        if (sellingList.isEmpty()) {
             binding.noSelling.visibility = View.VISIBLE
         } else {
             binding.noSelling.visibility = View.GONE

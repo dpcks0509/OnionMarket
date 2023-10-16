@@ -8,13 +8,13 @@ import com.asksira.loopingviewpager.LoopingPagerAdapter
 import com.bumptech.glide.Glide
 import pnu.cse.onionmarket.R
 
-
 class PostImageAdapter(
     itemList: List<String>,
     isInfinite: Boolean
 ) : LoopingPagerAdapter<String>(itemList, isInfinite) {
     override fun inflateView(viewType: Int, container: ViewGroup, listPosition: Int): View {
-        return LayoutInflater.from(container.context).inflate(R.layout.item_post_image, container, false)
+        return LayoutInflater.from(container.context)
+            .inflate(R.layout.item_post_image, container, false)
     }
 
     override fun bindView(convertView: View, listPosition: Int, viewType: Int) {

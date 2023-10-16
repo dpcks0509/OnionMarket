@@ -3,7 +3,6 @@ package pnu.cse.onionmarket.post.detail
 import android.app.AlertDialog
 import android.content.DialogInterface
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
@@ -67,7 +66,7 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
         val fromBlockchain = args.fromBlockchain
         val userId = Firebase.auth.currentUser?.uid
 
-        if(fromBlockchain == true) {
+        if (fromBlockchain == true) {
             binding.toolbarText.text = "블록체인 게시글"
 
             binding.editButton.visibility = View.INVISIBLE
@@ -81,7 +80,7 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
             var getReview = false
             val reviewJob = CoroutineScope(Dispatchers.IO).async {
                 retrofitService.getReviews(writerId!!).execute().let { response ->
-                    if(response.isSuccessful) {
+                    if (response.isSuccessful) {
                         blockchainReviewList = response.body()?.toMutableList()!!
                         getReview = true
                     }
@@ -96,8 +95,8 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
             runBlocking {
                 val getResult = reviewJob.await()
 
-                if(getResult) {
-                    for(blockchainReview in blockchainReviewList) {
+                if (getResult) {
+                    for (blockchainReview in blockchainReviewList) {
                         val review = ReviewItem(
                             reviewId = blockchainReview.reviewId,
                             createdAt = blockchainReview.createdAt,
@@ -142,7 +141,7 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
             var getPost = false
             val postJob = CoroutineScope(Dispatchers.IO).async {
                 MainActivity.retrofitService.getPosts(writerId!!).execute().let { response ->
-                    if(response.isSuccessful) {
+                    if (response.isSuccessful) {
                         blockchainSellingList = response.body()?.toMutableList()!!
                         getPost = true
                     }
@@ -153,12 +152,13 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
             runBlocking {
                 val getResult = postJob.await()
 
-                if(getResult) {
-                    for(blockchainPost in blockchainSellingList) {
-                        if(blockchainPost.postId == postId) {
-                            val postImageUrl = blockchainPost.postImageUrl?.removeSurrounding("[", "]")
-                                ?.split(", ")
-                                ?.map { it.trim() }
+                if (getResult) {
+                    for (blockchainPost in blockchainSellingList) {
+                        if (blockchainPost.postId == postId) {
+                            val postImageUrl =
+                                blockchainPost.postImageUrl?.removeSurrounding("[", "]")
+                                    ?.split(", ")
+                                    ?.map { it.trim() }
 
                             post = PostItem(
                                 postId = blockchainPost.postId,
@@ -175,13 +175,13 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                                 writerPhone = blockchainPost.userPhone,
                                 writerStar = null,
                                 buyerId = "",
-                                reviewWrite =  null
+                                reviewWrite = null
                             )
 
                             val loopingViewPager = binding.postImage
                             val indicator = binding.indicator
 
-                                val postImageAdapter = PostImageAdapter(postImageUrl!!, false)
+                            val postImageAdapter = PostImageAdapter(postImageUrl!!, false)
                             loopingViewPager.adapter = postImageAdapter
 
                             indicator.highlighterViewDelegate = {
@@ -326,7 +326,8 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                 binding.chatButton.setOnClickListener {
 
                     val chatRoomDB =
-                        Firebase.database.reference.child("ChatRooms").child(userId!!).child(writerId)
+                        Firebase.database.reference.child("ChatRooms").child(userId!!)
+                            .child(writerId)
                     var chatRoomId = ""
 
                     chatRoomDB.get().addOnSuccessListener {
@@ -453,7 +454,9 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                             snapshot.child("postContent").getValue(String::class.java)
 
                         binding.postStatus.apply {
-                            if (snapshot.child("postStatus").getValue(Boolean::class.java) == true) {
+                            if (snapshot.child("postStatus")
+                                    .getValue(Boolean::class.java) == true
+                            ) {
                                 text = "판매중"
                                 backgroundTintList =
                                     ContextCompat.getColorStateList(
@@ -468,10 +471,11 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                                         binding.root.context,
                                         R.color.gray
                                     )
-                                binding.chatButton.backgroundTintList = ContextCompat.getColorStateList(
-                                    binding.root.context,
-                                    R.color.light_gray
-                                )
+                                binding.chatButton.backgroundTintList =
+                                    ContextCompat.getColorStateList(
+                                        binding.root.context,
+                                        R.color.light_gray
+                                    )
                                 binding.safePaymentButton.text = "구매정보"
                                 binding.chatButton.isClickable = false
 
@@ -504,10 +508,11 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                             binding.safePaymentButton.text = "구매정보"
 
                             if (userId == buyerId) {
-                                binding.chatButton.backgroundTintList = ContextCompat.getColorStateList(
-                                    binding.root.context,
-                                    R.color.main_color
-                                )
+                                binding.chatButton.backgroundTintList =
+                                    ContextCompat.getColorStateList(
+                                        binding.root.context,
+                                        R.color.main_color
+                                    )
                                 binding.chatButton.isClickable = true
 
                                 binding.safePaymentButton.visibility = View.VISIBLE
@@ -593,7 +598,7 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
             Firebase.database.reference.child("Transactions")
                 .addValueEventListener(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
-                        if(postStatus == false) {
+                        if (postStatus == false) {
                             snapshot.children.map {
                                 val transaction =
                                     it.getValue(TransactionItem::class.java)

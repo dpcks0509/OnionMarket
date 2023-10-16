@@ -27,7 +27,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:paddingRight="48dp"
-            android:text="지갑 추가"
+            android:text="지갑 등록"
             android:textColor="@color/black"
             android:textSize="20sp"
             android:textStyle="bold" />

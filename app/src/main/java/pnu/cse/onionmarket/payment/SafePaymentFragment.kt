@@ -242,12 +242,15 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                             var getMoney = false
 
                             val walletJob = CoroutineScope(Dispatchers.IO).async {
-                                retrofitService.getWalletMoney(wallet.privateKey!!).execute().let { response ->
-                                    if (response.isSuccessful) {
-                                        walletMoney = response.body().toString().replace("ETH","").toDouble().times(2000000).toInt().toString()
-                                        getMoney = true
+                                retrofitService.getWalletMoney(wallet.privateKey!!).execute()
+                                    .let { response ->
+                                        if (response.isSuccessful) {
+                                            walletMoney =
+                                                (response.body().toString().replace("ETH", "")
+                                                    .toDouble()).times(2000000).toInt().toString()
+                                            getMoney = true
+                                        }
                                     }
-                                }
                                 getMoney
                             }
 
@@ -299,8 +302,8 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                             return@forEach
                         }
 
-                        if(wallet.userId == otherUserId) {
-                            sellerWalletKey =  wallet.privateKey!!
+                        if (wallet.userId == otherUserId) {
+                            sellerWalletKey = wallet.privateKey!!
                         }
                     }
                 }
@@ -385,7 +388,11 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
 
                                 AfterDeliveredWorker.setData(transactionId)
 
-                                workManager.enqueueUniqueWork("afterDeliveredWorker-$transactionId", ExistingWorkPolicy.KEEP, afterDeliveredWorker)
+                                workManager.enqueueUniqueWork(
+                                    "afterDeliveredWorker-$transactionId",
+                                    ExistingWorkPolicy.KEEP,
+                                    afterDeliveredWorker
+                                )
 
                             }
 
@@ -431,7 +438,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                         postContent = postContent,
                                         createdAt = createdAt
                                     )
-                                ).enqueue(object: retrofit2.Callback<String> {
+                                ).enqueue(object : retrofit2.Callback<String> {
                                     override fun onResponse(
                                         call: retrofit2.Call<String>,
                                         response: retrofit2.Response<String>
@@ -440,7 +447,10 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                         Log.e("savePost", state)
                                     }
 
-                                    override fun onFailure(call: retrofit2.Call<String>, t: Throwable) {
+                                    override fun onFailure(
+                                        call: retrofit2.Call<String>,
+                                        t: Throwable
+                                    ) {
                                         Log.e("savePost", t.toString())
                                     }
                                 })
@@ -457,7 +467,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                     ).execute().let { response ->
                                         if (response.isSuccessful) {
                                             deliveryState = response.body().toString()
-                                            Log.e("deliveryState",deliveryState)
+                                            Log.e("deliveryState", deliveryState)
                                             getDeliveryInfo = true
                                         }
                                     }
@@ -467,11 +477,15 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                 runBlocking {
                                     val getResult = deliveryJob.await()
 
-                                    if(getResult) {
-                                        if(deliveryState == "배송완료") {
+                                    if (getResult) {
+                                        if (deliveryState == "배송완료") {
                                             deliveryCheck(true)
                                         } else {
-                                            Toast.makeText(context,"택배가 이동중입니다. 택배상태 : {$deliveryState}",Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(
+                                                context,
+                                                "택배가 이동중입니다. 택배상태 : {$deliveryState}",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         }
                                     }
                                 }
@@ -560,8 +574,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
             if (binding.name.text.isNullOrEmpty() || binding.phone.text.isNullOrEmpty() || binding.address.text.isNullOrEmpty()) {
                 Toast.makeText(context, "배송지 정보를 모두 입력해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
-            }
-            else if (walletMoney < totalMoney) {
+            } else if (walletMoney < totalMoney) {
                 Toast.makeText(context, "거래에 필요한 지갑 잔액이 부족합니다.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
@@ -575,7 +588,11 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
             WaybillRegistrationWorker.setData(postId, transactionId)
 
             val workManager = WorkManager.getInstance(mContext!!)
-            workManager.enqueueUniqueWork("waybillRegistrationWorker-$transactionId", ExistingWorkPolicy.KEEP,waybillRegistrationWorker)
+            workManager.enqueueUniqueWork(
+                "waybillRegistrationWorker-$transactionId",
+                ExistingWorkPolicy.KEEP,
+                waybillRegistrationWorker
+            )
 
             val chatRoomDB =
                 Firebase.database.reference.child("ChatRooms").child(userId!!).child(writerId)
@@ -610,7 +627,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                     lastMessageTime = lastMessageTime
                 )
 
-                if(it.value == null)
+                if (it.value == null)
                     chatRoomDB.setValue(newChatRoom)
 
                 val newChatItem = ChatDetailItem(
@@ -636,12 +653,14 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                 chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
 
 
-                Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId).child("chats").push().apply{
+                Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId)
+                    .child("chats").push().apply {
                     newChatItem.chatId = key
                     setValue(newChatItem)
                 }
 
-                Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId).child("chats").push().apply{
+                Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId)
+                    .child("chats").push().apply {
                     newChatItem.chatId = key
                     setValue(newChatItem)
                 }
@@ -766,35 +785,39 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                 .setPositiveButton("구매확정",
                     DialogInterface.OnClickListener { dialog, id ->
                         completePayment()
-                        retrofitService.savePost(BlockchainPostItem(
-                            userId = otherUserId,
-                            userNickname = otherUserName,
-                            userPhone = otherUserPhone,
-                            postId = postId,
-                            postImageUrl = postImages.toString(),
-                            postTitle = postTitle,
-                            postPrice = postPrice,
-                            postContent = postContent,
-                            createdAt = createdAt
-                        )).enqueue(object: retrofit2.Callback<String> {
-                                    override fun onResponse(
-                                        call: retrofit2.Call<String>,
-                                        response: retrofit2.Response<String>
-                                    ) {
-                                        val state = response.body().toString()
-                                        Log.e("savePost", state)
-                                    }
+                        retrofitService.savePost(
+                            BlockchainPostItem(
+                                userId = otherUserId,
+                                userNickname = otherUserName,
+                                userPhone = otherUserPhone,
+                                postId = postId,
+                                postImageUrl = postImages.toString(),
+                                postTitle = postTitle,
+                                postPrice = postPrice,
+                                postContent = postContent,
+                                createdAt = createdAt
+                            )
+                        ).enqueue(object : retrofit2.Callback<String> {
+                            override fun onResponse(
+                                call: retrofit2.Call<String>,
+                                response: retrofit2.Response<String>
+                            ) {
+                                val state = response.body().toString()
+                                Log.e("savePost", state)
+                            }
 
-                                    override fun onFailure(call: retrofit2.Call<String>, t: Throwable) {
-                                        Log.e("savePost", t.toString())
-                                    }
-                                })
+                            override fun onFailure(call: retrofit2.Call<String>, t: Throwable) {
+                                Log.e("savePost", t.toString())
+                            }
+                        })
 
-                        retrofitService.makePayment(PaymentItem(
-                            receiverPrivateKey = sellerWalletKey,
-                            senderPrivateKey = buyerWalletKey,
-                            money = (postPrice.toDouble()).div(2000000)
-                        )).enqueue(object: retrofit2.Callback<String> {
+                        retrofitService.makePayment(
+                            PaymentItem(
+                                receiverPrivateKey = sellerWalletKey,
+                                senderPrivateKey = buyerWalletKey,
+                                money = (postPrice.toDouble()).div(2000000)
+                            )
+                        ).enqueue(object : retrofit2.Callback<String> {
                             override fun onResponse(
                                 call: retrofit2.Call<String>,
                                 response: retrofit2.Response<String>
@@ -818,7 +841,8 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
     }
 
     private fun getChatData() {
-        Firebase.database.reference.child("ChatRooms").child(myUserId).child(otherUserId).child("chats")
+        Firebase.database.reference.child("ChatRooms").child(myUserId).child(otherUserId)
+            .child("chats")
             .addChildEventListener(object : ChildEventListener {
                 override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
                     val chatDetailItem = snapshot.getValue(ChatDetailItem::class.java)
@@ -886,7 +910,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                     lastMessageTime = lastMessageTime
                 )
 
-                if(it.value == null)
+                if (it.value == null)
                     chatRoomDB.setValue(newChatRoom)
 
                 val newChatItem = ChatDetailItem(
@@ -913,11 +937,13 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
 
                 chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
 
-                Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId).child("chats").push().apply{
+                Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId)
+                    .child("chats").push().apply {
                     newChatItem.chatId = key
                     setValue(newChatItem)
                 }
-                Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId).child("chats").push().apply{
+                Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId)
+                    .child("chats").push().apply {
                     newChatItem.chatId = key
                     setValue(newChatItem)
                 }
@@ -1029,7 +1055,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                 lastMessageTime = lastMessageTime
             )
 
-            if(it.value == null)
+            if (it.value == null)
                 chatRoomDB.setValue(newChatRoom)
 
             val newChatItem = ChatDetailItem(
@@ -1055,11 +1081,13 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
 
             chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
 
-            Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId).child("chats").push().apply{
+            Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId)
+                .child("chats").push().apply {
                 newChatItem.chatId = key
                 setValue(newChatItem)
             }
-            Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId).child("chats").push().apply{
+            Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId)
+                .child("chats").push().apply {
                 newChatItem.chatId = key
                 setValue(newChatItem)
             }
@@ -1143,7 +1171,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                 lastMessageTime = lastMessageTime
             )
 
-            if(it.value == null)
+            if (it.value == null)
                 chatRoomDB.setValue(newChatRoom)
 
             val newChatItem = ChatDetailItem(
@@ -1168,11 +1196,13 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
 
             chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
 
-            Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId).child("chats").push().apply{
+            Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId)
+                .child("chats").push().apply {
                 newChatItem.chatId = key
                 setValue(newChatItem)
             }
-            Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId).child("chats").push().apply{
+            Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId)
+                .child("chats").push().apply {
                 newChatItem.chatId = key
                 setValue(newChatItem)
             }

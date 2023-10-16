@@ -1,7 +1,6 @@
 package pnu.cse.onionmarket.wallet
 
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.Toast
@@ -14,18 +13,11 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
-import com.google.firebase.database.ktx.getValue
 import com.google.firebase.ktx.Firebase
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.databinding.FragmentWalletBinding
 import pnu.cse.onionmarket.payment.transaction.TransactionAdapter
 import pnu.cse.onionmarket.payment.transaction.TransactionItem
-import pnu.cse.onionmarket.service.RetrofitService
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-
 
 class WalletFragment : Fragment(R.layout.fragment_wallet) {
     private lateinit var binding: FragmentWalletBinding
@@ -45,10 +37,9 @@ class WalletFragment : Fragment(R.layout.fragment_wallet) {
 
         walletAdapter = WalletAdapter()
 
-        transactionAdapter = TransactionAdapter {item ->
+        transactionAdapter = TransactionAdapter { item ->
             val action = WalletFragmentDirections.actionWalletFragmentToPostDetailFragment(
-                postId = item.postId!!,
-                writerId = item.sellerId!!
+                postId = item.postId!!, writerId = item.sellerId!!
             )
             findNavController().navigate(action)
         }
@@ -70,7 +61,7 @@ class WalletFragment : Fragment(R.layout.fragment_wallet) {
                     walletList.sortBy { it.createdAt }
                     walletAdapter.submitList(walletList)
 
-                    if(walletAdapter.currentList.isEmpty()) {
+                    if (walletAdapter.currentList.isEmpty()) {
                         binding.noWallet.visibility = View.VISIBLE
                         binding.transactionText.visibility = View.INVISIBLE
                         binding.noTransaction.visibility = View.INVISIBLE
@@ -97,47 +88,49 @@ class WalletFragment : Fragment(R.layout.fragment_wallet) {
         }
 
 
-        Firebase.database.reference.child("Wallets").addValueEventListener(object: ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                walletExist = false
-                snapshot.children.forEach {
-                    val wallet = it.getValue(WalletItem::class.java)
-                    wallet ?: return
-                    if(wallet.userId == userId) {
-                        walletExist = true
-                        return@forEach
-                    }
-                }
-            }
-
-            override fun onCancelled(error: DatabaseError) {}
-
-        })
-
-        Firebase.database.reference.child("Transactions").addValueEventListener(object: ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                transactionList = mutableListOf()
-
-                snapshot.children.map {
-                    val transaction = it.getValue(TransactionItem::class.java)
-                    transaction ?: return
-                    if(transaction.buyerId == userId || transaction.sellerId == userId) {
-                        transactionList.add(transaction)
+        Firebase.database.reference.child("Wallets")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    walletExist = false
+                    snapshot.children.forEach {
+                        val wallet = it.getValue(WalletItem::class.java)
+                        wallet ?: return
+                        if (wallet.userId == userId) {
+                            walletExist = true
+                            return@forEach
+                        }
                     }
                 }
 
-                transactionList.sortedByDescending { it.createdAt }
-                transactionAdapter.submitList(transactionList)
+                override fun onCancelled(error: DatabaseError) {}
 
-                if(!walletAdapter.currentList.isEmpty() && transactionAdapter.currentList.isEmpty()) {
-                    binding.noTransaction.visibility = View.VISIBLE
-                } else {
-                    binding.noTransaction.visibility = View.INVISIBLE
+            })
+
+        Firebase.database.reference.child("Transactions")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    transactionList = mutableListOf()
+
+                    snapshot.children.map {
+                        val transaction = it.getValue(TransactionItem::class.java)
+                        transaction ?: return
+                        if (transaction.buyerId == userId || transaction.sellerId == userId) {
+                            transactionList.add(transaction)
+                        }
+                    }
+
+                    transactionList.sortedByDescending { it.createdAt }
+                    transactionAdapter.submitList(transactionList)
+
+                    if (!walletAdapter.currentList.isEmpty() && transactionAdapter.currentList.isEmpty()) {
+                        binding.noTransaction.visibility = View.VISIBLE
+                    } else {
+                        binding.noTransaction.visibility = View.INVISIBLE
+                    }
                 }
-            }
 
-            override fun onCancelled(error: DatabaseError) {}
-        })
+                override fun onCancelled(error: DatabaseError) {}
+            })
 
         binding.transactionRecyclerView.apply {
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
@@ -147,12 +140,11 @@ class WalletFragment : Fragment(R.layout.fragment_wallet) {
         }
 
         binding.addButton.setOnClickListener {
-            if(walletExist) {
-                Toast.makeText(context,"지갑은 한개만 등록가능합니다.", Toast.LENGTH_SHORT).show()
+            if (walletExist) {
+                Toast.makeText(context, "지갑은 한개만 등록가능합니다.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             findNavController().navigate(R.id.action_walletFragment_to_walletAddFragment)
         }
-
     }
 }

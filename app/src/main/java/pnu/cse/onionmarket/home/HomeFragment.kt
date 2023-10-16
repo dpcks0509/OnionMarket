@@ -2,7 +2,6 @@ package pnu.cse.onionmarket.home
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
@@ -82,26 +81,27 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             }
         })
 
-        Firebase.database.reference.child("Wallets").addValueEventListener(object: ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                walletExist = false
-                snapshot.children.forEach {
-                    val wallet = it.getValue(WalletItem::class.java)
-                    wallet ?: return
-                    if(wallet.userId == userId) {
-                        walletExist = true
-                        return@forEach
+        Firebase.database.reference.child("Wallets")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    walletExist = false
+                    snapshot.children.forEach {
+                        val wallet = it.getValue(WalletItem::class.java)
+                        wallet ?: return
+                        if (wallet.userId == userId) {
+                            walletExist = true
+                            return@forEach
+                        }
                     }
                 }
-            }
 
-            override fun onCancelled(error: DatabaseError) {}
+                override fun onCancelled(error: DatabaseError) {}
 
-        })
+            })
 
         binding.postWriteButton.setOnClickListener {
-            if(!walletExist) {
-                Toast.makeText(context,"안전결제에 필요한\n전자지갑을 먼저 등록해주세요.", Toast.LENGTH_SHORT).show()
+            if (!walletExist) {
+                Toast.makeText(context, "안전결제에 필요한\n전자지갑을 먼저 등록해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 

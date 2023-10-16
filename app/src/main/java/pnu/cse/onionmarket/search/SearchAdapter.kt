@@ -13,7 +13,7 @@ class SearchAdapter(private val noSearch: FrameLayout?, private val onClick: (Se
     ListAdapter<SearchItem, SearchAdapter.ViewHolder>(differ) {
 
     init {
-        if(searchList.isEmpty()) {
+        if (searchList.isEmpty()) {
             noSearch?.visibility = View.VISIBLE
         } else {
             noSearch?.visibility = View.GONE
@@ -33,7 +33,7 @@ class SearchAdapter(private val noSearch: FrameLayout?, private val onClick: (Se
             binding.removeButton.setOnClickListener {
                 removeItem(item)
 
-                if(searchList.isEmpty()) {
+                if (searchList.isEmpty()) {
                     noSearch?.visibility = View.VISIBLE
                 } else {
                     noSearch?.visibility = View.GONE

@@ -3,7 +3,6 @@ package pnu.cse.onionmarket.post.write
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.AlphaAnimation
@@ -52,8 +51,8 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
     private val pickMultipleMedia =
         registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(10)) { uris ->
             if (uris != null) {
-                if(imageList.size + uris.size > 10) {
-                    Toast.makeText(context,"사진은 최대 10장까지 선택 가능합니다.",Toast.LENGTH_SHORT).show()
+                if (imageList.size + uris.size > 10) {
+                    Toast.makeText(context, "사진은 최대 10장까지 선택 가능합니다.", Toast.LENGTH_SHORT).show()
                     return@registerForActivityResult
                 }
                 val writeImageItems = uris.mapIndexed { index, uri ->
@@ -63,7 +62,7 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
                 writeImageAdapter.setPostImageItemList(writeImageItems)
                 binding.imageCount.text = imageCount.toString()
             } else {
-                // uri 리스트에 값이 없을 경우
+
             }
         }
 
@@ -98,7 +97,7 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
 
         val args: PostWriteFragmentArgs by navArgs()
 
-        if(args.postId.isNullOrEmpty()) {
+        if (args.postId.isNullOrEmpty()) {
             postId = UUID.randomUUID().toString()
         }
         // 게시글 수정
@@ -106,30 +105,32 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
             postId = args.postId
             binding.toolbarText.text = "게시글 수정"
 
-            Firebase.database.reference.child("Posts").child(postId).addListenerForSingleValueEvent(object: ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    editPost = snapshot.getValue(PostItem::class.java)!!
+            Firebase.database.reference.child("Posts").child(postId)
+                .addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        editPost = snapshot.getValue(PostItem::class.java)!!
 
-                    uploadedUris.clear()
+                        uploadedUris.clear()
 
-                    val imageUris = editPost.postImagesUri!!.map { Uri.parse(it) }
+                        val imageUris = editPost.postImagesUri!!.map { Uri.parse(it) }
 
-                    val editImageItems = editPost.postImagesUri!!.mapIndexed{ index, imageUrl ->
-                        WriteImageItem(UUID.randomUUID().toString(), imageUrl)
+                        val editImageItems =
+                            editPost.postImagesUri!!.mapIndexed { index, imageUrl ->
+                                WriteImageItem(UUID.randomUUID().toString(), imageUrl)
+                            }
+
+                        imageList.addAll(imageUris)
+                        writeImageAdapter.setPostImageItemList(editImageItems)
+
+                        binding.imageCount.text = imageCount.toString()
+                        binding.writePostTitle.setText(editPost.postTitle)
+                        binding.writePostPrice.setText(editPost.postPrice)
+                        binding.writePostContent.setText(editPost.postContent)
+
                     }
 
-                    imageList.addAll(imageUris)
-                    writeImageAdapter.setPostImageItemList(editImageItems)
-
-                    binding.imageCount.text = imageCount.toString()
-                    binding.writePostTitle.setText(editPost.postTitle)
-                    binding.writePostPrice.setText(editPost.postPrice)
-                    binding.writePostContent.setText(editPost.postContent)
-
-                }
-
-                override fun onCancelled(error: DatabaseError) {}
-            })
+                    override fun onCancelled(error: DatabaseError) {}
+                })
         }
 
         binding.backButton.setOnClickListener {
@@ -181,16 +182,17 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
                             .addOnFailureListener { exception ->
                             }
                     }
-                    .addOnFailureListener { exception ->}
+                    .addOnFailureListener { exception -> }
 
-                val imageUris = writeImageAdapter.imageList.map{ Uri.parse(it.imageUrl) }
+                val imageUris = writeImageAdapter.imageList.map { Uri.parse(it.imageUrl) }
 
                 uploadImages(imageUris,
                     successHandler = {
                         uploadPost(it, uploadedUrls)
                     },
                     errorHandler = {
-                        Toast.makeText(context, "갤러리에 존재하는 이미지만 업로드할 수 있습니다.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "갤러리에 존재하는 이미지만 업로드할 수 있습니다.", Toast.LENGTH_SHORT)
+                            .show()
                         hideProgress()
                     })
             } else {
@@ -268,7 +270,7 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
 
                     Firebase.database.reference.child("Posts").child(postId).setValue(post)
                         .addOnSuccessListener {
-                            if(Firebase.auth.currentUser?.uid.isNullOrEmpty())
+                            if (Firebase.auth.currentUser?.uid.isNullOrEmpty())
                                 return@addOnSuccessListener
                             addPostList.add(post)
                             homePostAdapter.submitList(addPostList)
@@ -296,11 +298,9 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
     }
 
     private fun animateProgressBar(show: Boolean) {
-        // 애니메이션 설정
         val fadeInDuration = 500L
         val fadeOutDuration = 500L
 
-        // 나타나는 애니메이션
         val fadeIn = AlphaAnimation(0.2f, 0.8f)
         fadeIn.interpolator = DecelerateInterpolator()
         fadeIn.duration = fadeInDuration
@@ -310,7 +310,6 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
             }
 
             override fun onAnimationEnd(animation: Animation) {
-                // 사라지는 애니메이션 시작
                 val fadeOut = AlphaAnimation(0.8f, 0.2f)
                 fadeOut.interpolator = AccelerateInterpolator()
                 fadeOut.duration = fadeOutDuration
@@ -319,7 +318,7 @@ class PostWriteFragment : Fragment(R.layout.fragment_post_write) {
 
                     override fun onAnimationEnd(animation: Animation) {
                         binding.progressImageView.visibility = View.GONE
-                        if(show)
+                        if (show)
                             binding.progressImageView.startAnimation(fadeIn)
                     }
 

@@ -2,7 +2,6 @@ package pnu.cse.onionmarket.profile
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.widget.PopupMenu
@@ -107,13 +106,13 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
         var userReviewNumber = 0
         var userReviewStar = 0.0
 
-        if(fromBlockchain == true) {
+        if (fromBlockchain == true) {
             binding.profileText.text = "블록체인 프로필"
 
             var getReview = false
             val reviewJob = CoroutineScope(Dispatchers.IO).async {
                 retrofitService.getReviews(writerId!!).execute().let { response ->
-                    if(response.isSuccessful) {
+                    if (response.isSuccessful) {
                         blockchainReviewList = response.body()?.toMutableList()!!
                         getReview = true
                     }
@@ -124,8 +123,8 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
             runBlocking {
                 val getResult = reviewJob.await()
 
-                if(getResult) {
-                    for(blockchainReview in blockchainReviewList) {
+                if (getResult) {
+                    for (blockchainReview in blockchainReviewList) {
                         val review = ReviewItem(
                             reviewId = blockchainReview.reviewId,
                             createdAt = blockchainReview.createdAt,
@@ -198,14 +197,15 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                         )
 
                         Firebase.database.reference.updateChildren(update)
-                        if(writerId == null)
+                        if (writerId == null)
                             writerId = userId
 
                         Firebase.database.reference.child("Users").child(writerId!!)
                             .addValueEventListener(object : ValueEventListener {
                                 override fun onDataChange(snapshot: DataSnapshot) {
                                     val userImageUri =
-                                        snapshot.child("userProfileImage").getValue(String::class.java)
+                                        snapshot.child("userProfileImage")
+                                            .getValue(String::class.java)
                                     if (userImageUri.isNullOrEmpty())
                                         Glide.with(binding.userImage)
                                             .load(R.drawable.app_logo)
@@ -219,7 +219,8 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                                     binding.userNickname.text =
                                         snapshot.child("userNickname").getValue(String::class.java)
                                     binding.userStar.text =
-                                        snapshot.child("userStar").getValue(Double::class.java).toString()
+                                        snapshot.child("userStar").getValue(Double::class.java)
+                                            .toString()
                                 }
 
                                 override fun onCancelled(error: DatabaseError) {}
@@ -260,7 +261,12 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                     .replace(R.id.myPageFrameLayout, reviewFragment)
                     .commit()
 
-                binding.sellingPost.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray))
+                binding.sellingPost.setTextColor(
+                    ContextCompat.getColor(
+                        requireContext(),
+                        R.color.gray
+                    )
+                )
                 binding.review.setTextColor(ContextCompat.getColor(requireContext(), R.color.black))
             }
         } else {
@@ -284,7 +290,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                 }
             }
 
-            if(userId == writerId) {
+            if (userId == writerId) {
                 binding.profileChatButton.apply {
                     text = "나의채팅"
                     setOnClickListener {
@@ -362,7 +368,12 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                     .replace(R.id.myPageFrameLayout, reviewFragment)
                     .commit()
 
-                binding.sellingPost.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray))
+                binding.sellingPost.setTextColor(
+                    ContextCompat.getColor(
+                        requireContext(),
+                        R.color.gray
+                    )
+                )
                 binding.review.setTextColor(ContextCompat.getColor(requireContext(), R.color.black))
             }
         }

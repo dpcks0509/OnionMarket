@@ -1,12 +1,10 @@
 package pnu.cse.onionmarket.chat
 
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.widget.LinearLayout
-import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.DividerItemDecoration
@@ -18,11 +16,7 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import pnu.cse.onionmarket.R
-import pnu.cse.onionmarket.chat.detail.ChatDetailFragment
 import pnu.cse.onionmarket.databinding.FragmentChatBinding
-import pnu.cse.onionmarket.post.PostItem
-import pnu.cse.onionmarket.post.detail.PostDetailFragmentDirections
-import java.util.*
 
 class ChatFragment : Fragment(R.layout.fragment_chat) {
     private lateinit var binding: FragmentChatBinding
@@ -63,7 +57,7 @@ class ChatFragment : Fragment(R.layout.fragment_chat) {
                 }.sortedByDescending { it.lastMessageTime } // 최근 메시지 시간을 기준으로 내림차순 정렬
                 chatAdapter.submitList(chatRoomList)
 
-                if(chatAdapter.currentList.isEmpty()) {
+                if (chatAdapter.currentList.isEmpty()) {
                     binding.noChat.visibility = VISIBLE
                 } else {
                     binding.noChat.visibility = GONE

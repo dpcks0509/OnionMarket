@@ -40,9 +40,6 @@ class ReviewWriteFragment : Fragment(R.layout.fragment_review_write) {
     private lateinit var chatDetailAdapter: ChatDetailAdapter
     private val chatDetailItemList = mutableListOf<ChatDetailItem>()
 
-    private lateinit var reviewAdapter: ReviewAdapter
-    private val reviewList = mutableListOf<ReviewItem>()
-
     private lateinit var postId: String
 
     private var chatRoomId: String = ""
@@ -155,7 +152,7 @@ class ReviewWriteFragment : Fragment(R.layout.fragment_review_write) {
                     lastMessageTime = lastMessageTime
                 )
 
-                if(it.value == null)
+                if (it.value == null)
                     chatRoomDB.setValue(newChatRoom)
 
                 val newChatItem = ChatDetailItem(
@@ -168,7 +165,8 @@ class ReviewWriteFragment : Fragment(R.layout.fragment_review_write) {
                     .addValueEventListener(object : ValueEventListener {
                         override fun onDataChange(snapshot: DataSnapshot) {
                             if (snapshot.exists())
-                                ChatDetailFragment.unreadMessage = snapshot.child("unreadMessage").getValue(Int::class.java)!!
+                                ChatDetailFragment.unreadMessage =
+                                    snapshot.child("unreadMessage").getValue(Int::class.java)!!
                         }
 
                         override fun onCancelled(error: DatabaseError) {
@@ -179,11 +177,13 @@ class ReviewWriteFragment : Fragment(R.layout.fragment_review_write) {
 
                 chatDetailAdapter.submitList(chatDetailItemList.toMutableList())
 
-                Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId).child("chats").push().apply{
+                Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId)
+                    .child("chats").push().apply {
                     newChatItem.chatId = key
                     setValue(newChatItem)
                 }
-                Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId).child("chats").push().apply{
+                Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId)
+                    .child("chats").push().apply {
                     newChatItem.chatId = key
                     setValue(newChatItem)
                 }
@@ -315,14 +315,16 @@ class ReviewWriteFragment : Fragment(R.layout.fragment_review_write) {
                     })
             }
 
-            retrofitService.saveReview(BlockchainReviewItem(
-                userId = otherUserId,
-                reviewId = reviewId,
-                reviewStar = reviewStar.toString(),
-                reviewText = reviewText,
-                writerNickname = myUserName,
-                createdAt = createdAt
-            )).enqueue(object: retrofit2.Callback<String> {
+            retrofitService.saveReview(
+                BlockchainReviewItem(
+                    userId = otherUserId,
+                    reviewId = reviewId,
+                    reviewStar = reviewStar.toString(),
+                    reviewText = reviewText,
+                    writerNickname = myUserName,
+                    createdAt = createdAt
+                )
+            ).enqueue(object : retrofit2.Callback<String> {
                 override fun onResponse(
                     call: retrofit2.Call<String>,
                     response: retrofit2.Response<String>
@@ -399,13 +401,14 @@ class ReviewWriteFragment : Fragment(R.layout.fragment_review_write) {
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // Handle errors
+
             }
         })
     }
 
     private fun getChatData() {
-        Firebase.database.reference.child("ChatRooms").child(myUserId).child(otherUserId).child("chats")
+        Firebase.database.reference.child("ChatRooms").child(myUserId).child(otherUserId)
+            .child("chats")
             .addChildEventListener(object : ChildEventListener {
                 override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
                     val chatDetailItem = snapshot.getValue(ChatDetailItem::class.java)

@@ -7,12 +7,13 @@ import androidx.work.WorkerParameters
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 
-class WaybillRegistrationWorker(context: Context, workerParams: WorkerParameters) : Worker(context,
+class WaybillRegistrationWorker(context: Context, workerParams: WorkerParameters) : Worker(
+    context,
     workerParams
 ) {
     override fun doWork(): Result {
-        Log.e("WaybillRegistrationWorker","WaybillRegistrationWorker")
-        if(transactionId != null) {
+        Log.e("WaybillRegistrationWorker", "WaybillRegistrationWorker")
+        if (transactionId != null) {
             val updates: MutableMap<String, Any> = hashMapOf(
                 "Posts/$postId/postStatus" to true,
                 "Posts/$postId/buyerId" to "",

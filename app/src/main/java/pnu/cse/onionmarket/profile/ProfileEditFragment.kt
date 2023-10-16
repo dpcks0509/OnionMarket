@@ -2,7 +2,6 @@ package pnu.cse.onionmarket.profile
 
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.AlphaAnimation
@@ -16,11 +15,7 @@ import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.Tasks
-import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
@@ -29,7 +24,7 @@ import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.databinding.FragmentProfileEditBinding
 import java.util.*
 
-class ProfileEditFragment: Fragment(R.layout.fragment_profile_edit) {
+class ProfileEditFragment : Fragment(R.layout.fragment_profile_edit) {
     private lateinit var binding: FragmentProfileEditBinding
 
     private var selectedUri: Uri? = null
@@ -95,12 +90,12 @@ class ProfileEditFragment: Fragment(R.layout.fragment_profile_edit) {
                         .addOnFailureListener { exception ->
                         }
                 }
-                .addOnFailureListener { exception ->}
+                .addOnFailureListener { exception -> }
 
             Firebase.storage.reference.child("profiles/${userId}/").child(fileName)
                 .putFile(selectedUri!!)
                 .addOnCompleteListener { task ->
-                    if(task.isSuccessful) {
+                    if (task.isSuccessful) {
 
                         task.result?.storage?.downloadUrl?.addOnSuccessListener { downloadUri ->
                             val updateUserProfileImage: MutableMap<String, Any> = hashMapOf(
@@ -146,11 +141,9 @@ class ProfileEditFragment: Fragment(R.layout.fragment_profile_edit) {
     }
 
     private fun animateProgressBar(show: Boolean) {
-        // 애니메이션 설정
         val fadeInDuration = 500L
         val fadeOutDuration = 500L
 
-        // 나타나는 애니메이션
         val fadeIn = AlphaAnimation(0.2f, 0.8f)
         fadeIn.interpolator = DecelerateInterpolator()
         fadeIn.duration = fadeInDuration
@@ -160,7 +153,6 @@ class ProfileEditFragment: Fragment(R.layout.fragment_profile_edit) {
             }
 
             override fun onAnimationEnd(animation: Animation) {
-                // 사라지는 애니메이션 시작
                 val fadeOut = AlphaAnimation(0.8f, 0.2f)
                 fadeOut.interpolator = AccelerateInterpolator()
                 fadeOut.duration = fadeOutDuration
@@ -169,7 +161,7 @@ class ProfileEditFragment: Fragment(R.layout.fragment_profile_edit) {
 
                     override fun onAnimationEnd(animation: Animation) {
                         binding.progressImageView.visibility = View.GONE
-                        if(show)
+                        if (show)
                             binding.progressImageView.startAnimation(fadeIn)
                     }
 

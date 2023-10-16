@@ -469,7 +469,7 @@
         android:focusable="true"
         android:foreground="?android:attr/selectableItemBackground"
         android:gravity="center"
-        android:text="결제하기"
+        android:text="구매하기"
         android:textColor="@color/white"
         android:textSize="22sp"
         android:textStyle="bold"

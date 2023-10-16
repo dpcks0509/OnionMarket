@@ -9,14 +9,9 @@ import android.view.animation.Animation
 import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.google.firebase.FirebaseException
-import com.google.firebase.auth.PhoneAuthCredential
-import com.google.firebase.auth.PhoneAuthOptions
-import com.google.firebase.auth.PhoneAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import pnu.cse.onionmarket.databinding.ActivityLoginBinding
-import java.util.concurrent.TimeUnit
 
 class LoginActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
@@ -73,11 +68,9 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun animateProgressBar(show: Boolean) {
-        // 애니메이션 설정
         val fadeInDuration = 500L
         val fadeOutDuration = 500L
 
-        // 나타나는 애니메이션
         val fadeIn = AlphaAnimation(0.2f, 0.8f)
         fadeIn.interpolator = DecelerateInterpolator()
         fadeIn.duration = fadeInDuration
@@ -87,7 +80,6 @@ class LoginActivity : AppCompatActivity() {
             }
 
             override fun onAnimationEnd(animation: Animation) {
-                // 사라지는 애니메이션 시작
                 val fadeOut = AlphaAnimation(0.8f, 0.2f)
                 fadeOut.interpolator = AccelerateInterpolator()
                 fadeOut.duration = fadeOutDuration

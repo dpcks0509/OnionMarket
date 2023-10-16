@@ -24,8 +24,7 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
         searchAdapter = SearchAdapter(binding.noSearch) {
             val searchQuery = it.searchedText.toString().trim()
             val action = SearchFragmentDirections.actionSearchFragmentToHomeFragment(
-                searchQuery = searchQuery,
-                firstSearch = true
+                searchQuery = searchQuery, firstSearch = true
             )
             findNavController().navigate(action)
         }
@@ -50,8 +49,7 @@ class SearchFragment : Fragment(R.layout.fragment_search) {
 
                 val searchQuery = binding.searchview.query.toString().trim()
                 val action = SearchFragmentDirections.actionSearchFragmentToHomeFragment(
-                    searchQuery = searchQuery,
-                    firstSearch = true
+                    searchQuery = searchQuery, firstSearch = true
                 )
 
                 findNavController().navigate(action)

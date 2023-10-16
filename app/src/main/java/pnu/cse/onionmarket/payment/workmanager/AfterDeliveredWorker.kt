@@ -6,15 +6,14 @@ import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
-import pnu.cse.onionmarket.payment.SafePaymentFragment
-import java.util.concurrent.TimeUnit
 
-class AfterDeliveredWorker(context: Context, workerParams: WorkerParameters) : Worker(context,
+class AfterDeliveredWorker(context: Context, workerParams: WorkerParameters) : Worker(
+    context,
     workerParams
 ) {
     override fun doWork(): Result {
-        Log.e("AfterDeliveredWorker","AfterDeliveredWorker")
-        if(transactionId != null) {
+        Log.e("AfterDeliveredWorker", "AfterDeliveredWorker")
+        if (transactionId != null) {
             val updates: MutableMap<String, Any> = hashMapOf(
                 "Transactions/$transactionId/completePayment" to true,
                 "Transactions/$transactionId/afterDeliveredWorker" to true

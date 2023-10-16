@@ -8,7 +8,6 @@ import android.view.View
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import androidx.navigation.fragment.navArgs
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.EmailAuthProvider
@@ -23,11 +22,8 @@ import com.google.firebase.storage.ktx.storage
 import pnu.cse.onionmarket.LoginActivity
 import pnu.cse.onionmarket.MainActivity
 import pnu.cse.onionmarket.R
-import pnu.cse.onionmarket.databinding.FragmentSafePaymentBinding
 import pnu.cse.onionmarket.databinding.FragmentWithdrawalBinding
-import pnu.cse.onionmarket.payment.SafePaymentFragmentArgs
 import pnu.cse.onionmarket.post.PostItem
-import pnu.cse.onionmarket.post.detail.PostDetailFragmentDirections
 
 class WithdrawalFragment : Fragment(R.layout.fragment_withdrawal) {
     private lateinit var binding: FragmentWithdrawalBinding
@@ -59,8 +55,10 @@ class WithdrawalFragment : Fragment(R.layout.fragment_withdrawal) {
             val builder = AlertDialog.Builder(context)
             builder
                 .setTitle("회원 탈퇴")
-                .setMessage("정말로 회원 탈퇴를 하시겠습니까?\n" +
-                "탈퇴 후 데이터는 복구되지 않습니다.")
+                .setMessage(
+                    "정말로 회원 탈퇴를 하시겠습니까?\n" +
+                            "탈퇴 후 데이터는 복구되지 않습니다."
+                )
                 .setPositiveButton("탈퇴",
                     DialogInterface.OnClickListener { dialog, id ->
                         // 회원탈퇴
@@ -165,7 +163,8 @@ class WithdrawalFragment : Fragment(R.layout.fragment_withdrawal) {
                                             Firebase.database.reference.child("Users")
                                                 .child(userId!!).removeValue()
 
-                                            Firebase.database.reference.child("ChatRooms").child(userId).removeValue()
+                                            Firebase.database.reference.child("ChatRooms")
+                                                .child(userId).removeValue()
 
                                             FirebaseAuth.getInstance().signOut()
 

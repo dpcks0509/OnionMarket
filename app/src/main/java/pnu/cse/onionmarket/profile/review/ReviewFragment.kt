@@ -1,7 +1,6 @@
 package pnu.cse.onionmarket.profile.review
 
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.LinearLayout
 import androidx.fragment.app.Fragment
@@ -23,12 +22,12 @@ import pnu.cse.onionmarket.databinding.FragmentReviewBinding
 import pnu.cse.onionmarket.service.BlockchainReviewItem
 
 class
-ReviewFragment: Fragment(R.layout.fragment_review) {
+ReviewFragment : Fragment(R.layout.fragment_review) {
     private lateinit var binding: FragmentReviewBinding
     private lateinit var reviewAdapter: ReviewAdapter
 
     private var reviewList = mutableListOf<ReviewItem>()
-    private var blockchainReviewList =mutableListOf<BlockchainReviewItem>()
+    private var blockchainReviewList = mutableListOf<BlockchainReviewItem>()
 
     private var profileUserId: String? = null
 
@@ -60,26 +59,26 @@ ReviewFragment: Fragment(R.layout.fragment_review) {
             addItemDecoration(DividerItemDecoration(context, LinearLayout.VERTICAL))
         }
 
-        if(profileUserId == null) {
+        if (profileUserId == null) {
             profileUserId = Firebase.auth.currentUser?.uid
             reviewList = mutableListOf()
             blockchainReviewList = mutableListOf()
 
             Firebase.database.reference.child("Reviews")
-                .addValueEventListener(object: ValueEventListener {
+                .addValueEventListener(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
                         reviewList = mutableListOf()
 
                         snapshot.children.map {
                             val review = it.getValue(ReviewItem::class.java)
                             review ?: return
-                            if(review.userId == profileUserId)
+                            if (review.userId == profileUserId)
                                 reviewList.add(review)
                         }
                         reviewList.sortByDescending { it.createdAt }
                         reviewAdapter.submitList(reviewList)
 
-                        if(reviewAdapter.currentList.isEmpty()) {
+                        if (reviewAdapter.currentList.isEmpty()) {
                             binding.noReview.visibility = View.VISIBLE
                         } else {
                             binding.noReview.visibility = View.GONE
@@ -127,20 +126,20 @@ ReviewFragment: Fragment(R.layout.fragment_review) {
                 })
 
             Firebase.database.reference.child("Reviews")
-                .addValueEventListener(object: ValueEventListener {
+                .addValueEventListener(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
                         reviewList = mutableListOf()
 
                         snapshot.children.map {
                             val review = it.getValue(ReviewItem::class.java)
                             review ?: return
-                            if(review.userId == profileUserId)
+                            if (review.userId == profileUserId)
                                 reviewList.add(review)
                         }
                         reviewList.sortByDescending { it.createdAt }
                         reviewAdapter.submitList(reviewList)
 
-                        if(reviewAdapter.currentList.isEmpty()) {
+                        if (reviewAdapter.currentList.isEmpty()) {
                             binding.noReview.visibility = View.VISIBLE
                         } else {
                             binding.noReview.visibility = View.GONE
@@ -193,7 +192,7 @@ ReviewFragment: Fragment(R.layout.fragment_review) {
             var getReview = false
             val reviewJob = CoroutineScope(Dispatchers.IO).async {
                 retrofitService.getReviews(profileUserId!!).execute().let { response ->
-                    if(response.isSuccessful) {
+                    if (response.isSuccessful) {
                         blockchainReviewList = response.body()?.toMutableList()!!
                         getReview = true
                     }
@@ -207,8 +206,8 @@ ReviewFragment: Fragment(R.layout.fragment_review) {
 
             runBlocking {
                 val getResult = reviewJob.await()
-                if(getResult) {
-                    for(blockchainReview in blockchainReviewList) {
+                if (getResult) {
+                    for (blockchainReview in blockchainReviewList) {
 
                         val review = ReviewItem(
                             reviewId = blockchainReview.reviewId,
@@ -234,7 +233,7 @@ ReviewFragment: Fragment(R.layout.fragment_review) {
                 reviewList.sortByDescending { it.createdAt }
                 reviewAdapter.submitList(reviewList)
 
-                if(reviewAdapter.currentList.isEmpty()) {
+                if (reviewAdapter.currentList.isEmpty()) {
                     binding.noReview.visibility = View.VISIBLE
                 } else {
                     binding.noReview.visibility = View.GONE

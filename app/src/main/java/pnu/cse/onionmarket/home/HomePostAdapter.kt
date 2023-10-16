@@ -16,9 +16,6 @@ import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.databinding.ItemPostBinding
 import pnu.cse.onionmarket.payment.transaction.TransactionItem
 import pnu.cse.onionmarket.post.PostItem
-import java.text.SimpleDateFormat
-import java.time.Instant
-import java.util.*
 
 class HomePostAdapter(
     private val onClick: (PostItem) -> Unit,
@@ -61,24 +58,30 @@ class HomePostAdapter(
 
                 } else {
                     var onPayment = true
-                    Firebase.database.reference.child("Transactions").addValueEventListener(object:
+                    Firebase.database.reference.child("Transactions").addValueEventListener(object :
                         ValueEventListener {
                         override fun onDataChange(snapshot: DataSnapshot) {
                             snapshot.children.map {
                                 val transaction =
                                     it.getValue(TransactionItem::class.java)
                                 transaction ?: return
-                                if(transaction.postId == item.postId && transaction.completePayment == true)
+                                if (transaction.postId == item.postId && transaction.completePayment == true)
                                     onPayment = false
 
-                                if(onPayment) {
+                                if (onPayment) {
                                     text = "거래중"
                                     backgroundTintList =
-                                        ContextCompat.getColorStateList(binding.root.context, R.color.pink)
+                                        ContextCompat.getColorStateList(
+                                            binding.root.context,
+                                            R.color.pink
+                                        )
                                 } else {
                                     text = "판매완료"
                                     backgroundTintList =
-                                        ContextCompat.getColorStateList(binding.root.context, R.color.gray)
+                                        ContextCompat.getColorStateList(
+                                            binding.root.context,
+                                            R.color.gray
+                                        )
                                 }
                             }
                         }

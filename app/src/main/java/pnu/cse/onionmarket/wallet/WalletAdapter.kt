@@ -2,7 +2,6 @@ package pnu.cse.onionmarket.wallet
 
 import android.app.AlertDialog
 import android.content.DialogInterface
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.PopupMenu
@@ -13,8 +12,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -22,10 +19,6 @@ import kotlinx.coroutines.runBlocking
 import pnu.cse.onionmarket.MainActivity.Companion.retrofitService
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.databinding.ItemWalletBinding
-import pnu.cse.onionmarket.payment.workmanager.DeliveryCheckWorker
-import pnu.cse.onionmarket.service.RetrofitService
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 
 class WalletAdapter() : ListAdapter<WalletItem, WalletAdapter.ViewHolder>(differ) {
 
@@ -50,7 +43,8 @@ class WalletAdapter() : ListAdapter<WalletItem, WalletAdapter.ViewHolder>(differ
                 retrofitService.getWalletMoney(item.privateKey!!).execute().let { response ->
                     if (response.isSuccessful) {
 
-                        walletMoney = response.body().toString().replace("ETH","").toDouble().times(2000000).toInt().toString()
+                        walletMoney = (response.body().toString().replace("ETH", "")
+                            .toDouble()).times(2000000).toInt().toString()
                         getMoney = true
                     }
                 }
@@ -134,7 +128,6 @@ class WalletAdapter() : ListAdapter<WalletItem, WalletAdapter.ViewHolder>(differ
                     false
                 }
             }
-
         }
     }
 

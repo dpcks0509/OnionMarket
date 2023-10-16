@@ -9,22 +9,16 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import kotlinx.coroutines.*
 import pnu.cse.onionmarket.MainActivity.Companion.retrofitService
 import pnu.cse.onionmarket.payment.transaction.TransactionItem
-import pnu.cse.onionmarket.service.RetrofitService
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 
-class DeliveryCheckWorker(context: Context, workerParams: WorkerParameters) : Worker(context,
+class DeliveryCheckWorker(context: Context, workerParams: WorkerParameters) : Worker(
+    context,
     workerParams
 ) {
-
-
     override fun doWork(): Result {
-        Log.e("DeliveryCheckWorker","DeliveryCheckWorker")
+        Log.e("DeliveryCheckWorker", "DeliveryCheckWorker")
         var waybillCompanyCode = ""
         var waybillNumber = ""
 
@@ -34,7 +28,7 @@ class DeliveryCheckWorker(context: Context, workerParams: WorkerParameters) : Wo
                     snapshot.children.map {
                         val transaction = it.getValue(TransactionItem::class.java)
                         transaction ?: return
-                        if(transaction.transactionId == transactionId) {
+                        if (transaction.transactionId == transactionId) {
                             waybillCompanyCode = transaction.waybillCompanyCode!!
                             waybillNumber = transaction.waybillNumber!!
                         }
@@ -54,7 +48,7 @@ class DeliveryCheckWorker(context: Context, workerParams: WorkerParameters) : Wo
             ).execute().let { response ->
                 if (response.isSuccessful) {
                     val state = response.body().toString()
-                    Log.e("state",state)
+                    Log.e("state", state)
                     if (state == "배송완료") {
                         delivered = true
                     }
@@ -87,7 +81,7 @@ class DeliveryCheckWorker(context: Context, workerParams: WorkerParameters) : Wo
             }
         }
 
-        if(isDelivered) {
+        if (isDelivered) {
             return Result.success()
         } else {
             return Result.failure()
