@@ -38,10 +38,24 @@ class WalletFragment : Fragment(R.layout.fragment_wallet) {
         walletAdapter = WalletAdapter()
 
         transactionAdapter = TransactionAdapter { item ->
-            val action = WalletFragmentDirections.actionWalletFragmentToPostDetailFragment(
-                postId = item.postId!!, writerId = item.sellerId!!
-            )
-            findNavController().navigate(action)
+
+            Firebase.database.reference.child("Posts").child(item.postId!!)
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        if(snapshot.child("postPrice").getValue(String::class.java).isNullOrEmpty()) {
+                            Toast.makeText(context, "게시글이 삭제되었습니다.\n블록체인 프로필을 통해 확인해주세요.", Toast.LENGTH_SHORT).show()
+                        } else {
+                            val action = WalletFragmentDirections.actionWalletFragmentToPostDetailFragment(
+                                postId = item.postId!!, writerId = item.sellerId!!
+                            )
+                            findNavController().navigate(action)
+                        }
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                    }
+
+                })
         }
 
         Firebase.database.reference.child("Wallets")

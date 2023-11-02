@@ -483,7 +483,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                         } else {
                                             Toast.makeText(
                                                 context,
-                                                "택배가 이동중입니다. 택배상태 : {$deliveryState}",
+                                                "택배가 이동중입니다.\n택배상태 : {$deliveryState}",
                                                 Toast.LENGTH_SHORT
                                             ).show()
                                         }
@@ -758,7 +758,7 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
             val balloon = Balloon.Builder(requireContext())
                 .setWidth(BalloonSizeSpec.WRAP)
                 .setHeight(BalloonSizeSpec.WRAP)
-                .setText("수수료는 건당 1000원 발생하며,\n거래금액이 클수록 수수료 %가 작아집니다.")
+                .setText("수수료는 건당 최대 1000원 발생하며,\n거래금액이 클수록 수수료 %가 작아집니다.")
                 .setTextColorResource(R.color.white)
                 .setTextSize(15f)
                 .setArrowPositionRules(ArrowPositionRules.ALIGN_ANCHOR)

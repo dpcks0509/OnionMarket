@@ -532,7 +532,7 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                                                     it.getValue(TransactionItem::class.java)
                                                 transaction ?: return
 
-                                                if (transaction.buyerId == userId && transaction.completePayment == true) {
+                                                if (transaction.postId == postId && transaction.buyerId == userId && transaction.completePayment == true) {
                                                     binding.writeReview.visibility = View.VISIBLE
 
                                                     binding.writeReview.setOnClickListener {
@@ -543,10 +543,7 @@ class PostDetailFragment : Fragment(R.layout.fragment_post_detail) {
                                                             )
                                                         findNavController().navigate(action)
                                                     }
-                                                } else {
-                                                    binding.writeReview.visibility = View.GONE
                                                 }
-
                                             }
                                         }
 

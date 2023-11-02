@@ -36,7 +36,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         val gson: Gson = GsonBuilder().setLenient().create()
 
-        val retrofit = Retrofit.Builder().baseUrl("http://43.201.103.235:8080")
+        val retrofit = Retrofit.Builder().baseUrl("http://3.35.207.174:8080/")
             .addConverterFactory(GsonConverterFactory.create(gson)).build()
 
         val retrofitService = retrofit.create(RetrofitService::class.java)
