@@ -12,7 +12,6 @@ class AfterDeliveredWorker(context: Context, workerParams: WorkerParameters) : W
     workerParams
 ) {
     override fun doWork(): Result {
-        Log.e("AfterDeliveredWorker", "AfterDeliveredWorker")
         if (transactionId != null) {
             val updates: MutableMap<String, Any> = hashMapOf(
                 "Transactions/$transactionId/completePayment" to true,

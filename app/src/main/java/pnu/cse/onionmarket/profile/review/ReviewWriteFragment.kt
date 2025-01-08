@@ -1,7 +1,6 @@
 package pnu.cse.onionmarket.profile.review
 
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.RatingBar
 import android.widget.Toast
@@ -15,9 +14,13 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
-import okhttp3.*
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import org.json.JSONObject
 import pnu.cse.onionmarket.MainActivity
 import pnu.cse.onionmarket.MainActivity.Companion.retrofitService
@@ -179,14 +182,14 @@ class ReviewWriteFragment : Fragment(R.layout.fragment_review_write) {
 
                 Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId)
                     .child("chats").push().apply {
-                    newChatItem.chatId = key
-                    setValue(newChatItem)
-                }
+                        newChatItem.chatId = key
+                        setValue(newChatItem)
+                    }
                 Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId)
                     .child("chats").push().apply {
-                    newChatItem.chatId = key
-                    setValue(newChatItem)
-                }
+                        newChatItem.chatId = key
+                        setValue(newChatItem)
+                    }
 
                 val updates: MutableMap<String, Any> = hashMapOf(
                     "ChatRooms/$otherUserId/$userId/lastMessage" to message,
@@ -329,12 +332,9 @@ class ReviewWriteFragment : Fragment(R.layout.fragment_review_write) {
                     call: retrofit2.Call<String>,
                     response: retrofit2.Response<String>
                 ) {
-                    val state = response.body().toString()
-                    Log.e("saveReview", state)
                 }
 
                 override fun onFailure(call: retrofit2.Call<String>, t: Throwable) {
-                    Log.e("saveReview", t.toString())
                 }
             })
         }

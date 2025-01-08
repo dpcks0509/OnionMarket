@@ -1,7 +1,6 @@
 package pnu.cse.onionmarket.payment.workmanager
 
 import android.content.Context
-import android.util.Log
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.google.firebase.database.ktx.database
@@ -12,7 +11,6 @@ class WaybillRegistrationWorker(context: Context, workerParams: WorkerParameters
     workerParams
 ) {
     override fun doWork(): Result {
-        Log.e("WaybillRegistrationWorker", "WaybillRegistrationWorker")
         if (transactionId != null) {
             val updates: MutableMap<String, Any> = hashMapOf(
                 "Posts/$postId/postStatus" to true,

@@ -9,7 +9,10 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import pnu.cse.onionmarket.MainActivity.Companion.retrofitService
 import pnu.cse.onionmarket.payment.transaction.TransactionItem
 
@@ -18,7 +21,6 @@ class DeliveryCheckWorker(context: Context, workerParams: WorkerParameters) : Wo
     workerParams
 ) {
     override fun doWork(): Result {
-        Log.e("DeliveryCheckWorker", "DeliveryCheckWorker")
         var waybillCompanyCode = ""
         var waybillNumber = ""
 
@@ -48,7 +50,6 @@ class DeliveryCheckWorker(context: Context, workerParams: WorkerParameters) : Wo
             ).execute().let { response ->
                 if (response.isSuccessful) {
                     val state = response.body().toString()
-                    Log.e("state", state)
                     if (state == "배송완료") {
                         delivered = true
                     }
@@ -69,14 +70,11 @@ class DeliveryCheckWorker(context: Context, workerParams: WorkerParameters) : Wo
                     )
 
                     Firebase.database.reference.updateChildren(updates)
-
-                    Log.e("delivered", "delivered")
                     return@runBlocking true
                 } else {
                     return@runBlocking false
                 }
             } else {
-                Log.e("not delivered", "not delivered")
                 return@runBlocking false
             }
         }

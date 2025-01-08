@@ -243,7 +243,6 @@ class WaybillFragment : Fragment(R.layout.fragment_waybill) {
                             }
 
                             if (!transaction.waybillNumber.isNullOrEmpty()) {
-                                Log.e("Cancel", " waybillRegistrationWorker")
                                 workManager.cancelAllWorkByTag("waybillRegistrationWorker-$transactionId")
 
                                 binding.submitButton.visibility = View.GONE

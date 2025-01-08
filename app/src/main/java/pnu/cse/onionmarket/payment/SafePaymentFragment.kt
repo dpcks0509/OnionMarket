@@ -4,7 +4,6 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.DialogInterface
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
@@ -23,14 +22,21 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
-import com.skydoves.balloon.*
+import com.skydoves.balloon.ArrowPositionRules
+import com.skydoves.balloon.Balloon
+import com.skydoves.balloon.BalloonAnimation
+import com.skydoves.balloon.BalloonSizeSpec
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
-import okhttp3.*
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import org.json.JSONObject
 import pnu.cse.onionmarket.MainActivity
 import pnu.cse.onionmarket.MainActivity.Companion.retrofitService
@@ -52,7 +58,7 @@ import pnu.cse.onionmarket.service.PaymentItem
 import pnu.cse.onionmarket.wallet.WalletFragmentDirections
 import pnu.cse.onionmarket.wallet.WalletItem
 import java.io.IOException
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
@@ -378,7 +384,6 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                 }
 
                                 val workManager = WorkManager.getInstance(mContext!!)
-                                Log.e("Cancel", " deliveryCheckWorker")
                                 workManager.cancelAllWorkByTag("deliveryCheckWorker-$transactionId")
 
                                 val afterDeliveredWorker =
@@ -443,15 +448,12 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                         call: retrofit2.Call<String>,
                                         response: retrofit2.Response<String>
                                     ) {
-                                        val state = response.body().toString()
-                                        Log.e("savePost", state)
                                     }
 
                                     override fun onFailure(
                                         call: retrofit2.Call<String>,
                                         t: Throwable
                                     ) {
-                                        Log.e("savePost", t.toString())
                                     }
                                 })
                             }
@@ -467,7 +469,6 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                     ).execute().let { response ->
                                         if (response.isSuccessful) {
                                             deliveryState = response.body().toString()
-                                            Log.e("deliveryState", deliveryState)
                                             getDeliveryInfo = true
                                         }
                                     }
@@ -555,7 +556,6 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                 binding.waybillCheckButton.visibility = View.GONE
 
                                 val workManager = WorkManager.getInstance(mContext!!)
-                                Log.e("Cancel", " afterDeliveredWorker")
                                 workManager.cancelAllWorkByTag("afterDeliveredWorker-$transactionId")
                             }
                         }
@@ -655,15 +655,15 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
 
                 Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId)
                     .child("chats").push().apply {
-                    newChatItem.chatId = key
-                    setValue(newChatItem)
-                }
+                        newChatItem.chatId = key
+                        setValue(newChatItem)
+                    }
 
                 Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId)
                     .child("chats").push().apply {
-                    newChatItem.chatId = key
-                    setValue(newChatItem)
-                }
+                        newChatItem.chatId = key
+                        setValue(newChatItem)
+                    }
 
                 val updates: MutableMap<String, Any> = hashMapOf(
                     "ChatRooms/$otherUserId/$userId/lastMessage" to message,
@@ -802,12 +802,9 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                 call: retrofit2.Call<String>,
                                 response: retrofit2.Response<String>
                             ) {
-                                val state = response.body().toString()
-                                Log.e("savePost", state)
                             }
 
                             override fun onFailure(call: retrofit2.Call<String>, t: Throwable) {
-                                Log.e("savePost", t.toString())
                             }
                         })
 
@@ -823,11 +820,9 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
                                 response: retrofit2.Response<String>
                             ) {
                                 val state = response.body().toString()
-                                Log.e("makePayment", state)
                             }
 
                             override fun onFailure(call: retrofit2.Call<String>, t: Throwable) {
-                                Log.e("makePayment", t.toString())
                             }
                         })
                     })
@@ -939,14 +934,14 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
 
                 Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId)
                     .child("chats").push().apply {
-                    newChatItem.chatId = key
-                    setValue(newChatItem)
-                }
+                        newChatItem.chatId = key
+                        setValue(newChatItem)
+                    }
                 Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId)
                     .child("chats").push().apply {
-                    newChatItem.chatId = key
-                    setValue(newChatItem)
-                }
+                        newChatItem.chatId = key
+                        setValue(newChatItem)
+                    }
 
                 val updates: MutableMap<String, Any> = hashMapOf(
                     "ChatRooms/$userId/$otherUserId/lastMessage" to message,
@@ -1083,14 +1078,14 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
 
             Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId)
                 .child("chats").push().apply {
-                newChatItem.chatId = key
-                setValue(newChatItem)
-            }
+                    newChatItem.chatId = key
+                    setValue(newChatItem)
+                }
             Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId)
                 .child("chats").push().apply {
-                newChatItem.chatId = key
-                setValue(newChatItem)
-            }
+                    newChatItem.chatId = key
+                    setValue(newChatItem)
+                }
 
             val updates: MutableMap<String, Any> = hashMapOf(
                 "ChatRooms/$otherUserId/$userId/lastMessage" to message,
@@ -1198,14 +1193,14 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
 
             Firebase.database.reference.child("ChatRooms").child(userId).child(otherUserId)
                 .child("chats").push().apply {
-                newChatItem.chatId = key
-                setValue(newChatItem)
-            }
+                    newChatItem.chatId = key
+                    setValue(newChatItem)
+                }
             Firebase.database.reference.child("ChatRooms").child(otherUserId).child(userId)
                 .child("chats").push().apply {
-                newChatItem.chatId = key
-                setValue(newChatItem)
-            }
+                    newChatItem.chatId = key
+                    setValue(newChatItem)
+                }
 
             val updates: MutableMap<String, Any> = hashMapOf(
                 "ChatRooms/$otherUserId/$userId/lastMessage" to message,
