@@ -55,4 +55,4 @@ e-mail: cotncjf2@naver.com
 https://www.youtube.com/watch?v=0CIKGKDZyCo
 
 ## POSTER
-![capstone_poster.jpg](src/main/res/drawable/capstone_poster.jpg)![figure](/images/capstone_poster.jpg)
+![capstone_poster.jpg](app/src/main/res/drawable/capstone_poster.jpg)![figure](/images/capstone_poster.jpg)
