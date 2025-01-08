@@ -41,7 +41,7 @@ import org.json.JSONObject
 import pnu.cse.onionmarket.MainActivity
 import pnu.cse.onionmarket.MainActivity.Companion.retrofitService
 import pnu.cse.onionmarket.R
-import pnu.cse.onionmarket.UserItem
+import pnu.cse.onionmarket.user.User
 import pnu.cse.onionmarket.chat.ChatItem
 import pnu.cse.onionmarket.chat.detail.ChatDetailAdapter
 import pnu.cse.onionmarket.chat.detail.ChatDetailFragment
@@ -324,10 +324,10 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
 
         Firebase.database.reference.child("Users").child(userId!!).get()
             .addOnSuccessListener {
-                val myUserItem = it.getValue(UserItem::class.java)
-                myUserName = myUserItem?.userNickname ?: ""
-                myUserProfileImage = myUserItem?.userProfileImage ?: ""
-                myUserToken = myUserItem?.userToken ?: ""
+                val myUser = it.getValue(User::class.java)
+                myUserName = myUser?.userNickname ?: ""
+                myUserProfileImage = myUser?.userProfileImage ?: ""
+                myUserToken = myUser?.userToken ?: ""
 
                 getOtherUserData()
             }
@@ -861,12 +861,12 @@ class SafePaymentFragment : Fragment(R.layout.fragment_safe_payment) {
     private fun getOtherUserData() {
         Firebase.database.reference.child("Users").child(otherUserId!!).get()
             .addOnSuccessListener {
-                val otherUserItem = it.getValue(UserItem::class.java)
-                chatDetailAdapter.otherUserItem = otherUserItem
-                otherUserName = otherUserItem?.userNickname.toString()
-                otherUserPhone = otherUserItem?.userPhone.toString()
-                otherUserToken = otherUserItem?.userToken.orEmpty()
-                otherUserProfileImage = otherUserItem?.userProfileImage.orEmpty()
+                val otherUser = it.getValue(User::class.java)
+                chatDetailAdapter.otherUser = otherUser
+                otherUserName = otherUser?.userNickname.toString()
+                otherUserPhone = otherUser?.userPhone.toString()
+                otherUserToken = otherUser?.userToken.orEmpty()
+                otherUserProfileImage = otherUser?.userProfileImage.orEmpty()
                 getChatData()
             }
     }

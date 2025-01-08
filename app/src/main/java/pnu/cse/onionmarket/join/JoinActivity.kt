@@ -1,4 +1,4 @@
-package pnu.cse.onionmarket
+package pnu.cse.onionmarket.join
 
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
@@ -16,6 +16,8 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.messaging.ktx.messaging
+import pnu.cse.onionmarket.login.LoginActivity
+import pnu.cse.onionmarket.user.User
 import pnu.cse.onionmarket.databinding.ActivityJoinBinding
 
 class JoinActivity : AppCompatActivity() {
@@ -94,7 +96,7 @@ class JoinActivity : AppCompatActivity() {
 
                                         Firebase.messaging.token.addOnCompleteListener {
                                             val token = it.result
-                                            val user = UserItem(
+                                            val user = User(
                                                 userId = userId,
                                                 userNickname = nickname,
                                                 userPhone = phone,

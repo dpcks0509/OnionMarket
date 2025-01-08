@@ -19,7 +19,7 @@ import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
-import pnu.cse.onionmarket.LoginActivity
+import pnu.cse.onionmarket.login.LoginActivity
 import pnu.cse.onionmarket.MainActivity
 import pnu.cse.onionmarket.R
 import pnu.cse.onionmarket.databinding.FragmentWithdrawalBinding

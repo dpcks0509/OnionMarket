@@ -1,9 +1,11 @@
-package pnu.cse.onionmarket
+package pnu.cse.onionmarket.splash
 
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import androidx.appcompat.app.AppCompatActivity
+import pnu.cse.onionmarket.MainActivity
+import pnu.cse.onionmarket.R
 
 class SplashActivity : AppCompatActivity() {
 

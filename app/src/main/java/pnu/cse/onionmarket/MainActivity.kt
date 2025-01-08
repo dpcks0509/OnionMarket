@@ -14,7 +14,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
-import androidx.work.*
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -25,6 +24,7 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import pnu.cse.onionmarket.databinding.ActivityMainBinding
 import pnu.cse.onionmarket.home.HomeFragmentDirections
+import pnu.cse.onionmarket.login.LoginActivity
 import pnu.cse.onionmarket.service.RetrofitService
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory

@@ -20,7 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
-import pnu.cse.onionmarket.LoginActivity
+import pnu.cse.onionmarket.login.LoginActivity
 import pnu.cse.onionmarket.MainActivity
 import pnu.cse.onionmarket.MainActivity.Companion.retrofitService
 import pnu.cse.onionmarket.R

@@ -24,7 +24,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import pnu.cse.onionmarket.MainActivity
 import pnu.cse.onionmarket.R
-import pnu.cse.onionmarket.UserItem
+import pnu.cse.onionmarket.user.User
 import pnu.cse.onionmarket.databinding.FragmentChatDetailBinding
 import java.io.IOException
 
@@ -103,9 +103,9 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
 
         Firebase.database.reference.child("Users").child(myUserId!!).get()
             .addOnSuccessListener {
-                val myUserItem = it.getValue(UserItem::class.java)
-                myUserName = myUserItem?.userNickname ?: ""
-                myUserProfileImage = myUserItem?.userProfileImage ?: ""
+                val myUser = it.getValue(User::class.java)
+                myUserName = myUser?.userNickname ?: ""
+                myUserProfileImage = myUser?.userProfileImage ?: ""
 
                 getOtherUserData()
             }
@@ -283,12 +283,12 @@ class ChatDetailFragment : Fragment(R.layout.fragment_chat_detail) {
     private fun getOtherUserData() {
         Firebase.database.reference.child("Users").child(otherUserId!!).get()
             .addOnSuccessListener {
-                val otherUserItem = it.getValue(UserItem::class.java)
-                chatDetailAdapter.otherUserItem = otherUserItem
-                otherUserName = otherUserItem?.userNickname.toString()
-                otherUserToken = otherUserItem?.userToken.orEmpty()
-                otherUserProfileImage = otherUserItem?.userProfileImage.orEmpty()
-                binding.nickname.text = otherUserItem?.userNickname
+                val otherUser = it.getValue(User::class.java)
+                chatDetailAdapter.otherUser = otherUser
+                otherUserName = otherUser?.userNickname.toString()
+                otherUserToken = otherUser?.userToken.orEmpty()
+                otherUserProfileImage = otherUser?.userProfileImage.orEmpty()
+                binding.nickname.text = otherUser?.userNickname
 
                 getChatData()
             }

@@ -1,6 +1,6 @@
-package pnu.cse.onionmarket
+package pnu.cse.onionmarket.user
 
-data class UserItem(
+data class User(
     val userId: String? = null,
     val userNickname: String? = null,
     val userPhone: String? = null,

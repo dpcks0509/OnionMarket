@@ -1,4 +1,4 @@
-package pnu.cse.onionmarket
+package pnu.cse.onionmarket.login
 
 import android.content.Intent
 import android.os.Bundle
@@ -11,7 +11,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import pnu.cse.onionmarket.MainActivity
 import pnu.cse.onionmarket.databinding.ActivityLoginBinding
+import pnu.cse.onionmarket.join.JoinActivity
 
 class LoginActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding

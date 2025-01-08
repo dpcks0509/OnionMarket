@@ -2,7 +2,6 @@ package pnu.cse.onionmarket.payment
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -36,7 +35,7 @@ import org.json.JSONObject
 import pnu.cse.onionmarket.MainActivity
 import pnu.cse.onionmarket.MainActivity.Companion.retrofitService
 import pnu.cse.onionmarket.R
-import pnu.cse.onionmarket.UserItem
+import pnu.cse.onionmarket.user.User
 import pnu.cse.onionmarket.chat.ChatItem
 import pnu.cse.onionmarket.chat.detail.ChatDetailAdapter
 import pnu.cse.onionmarket.chat.detail.ChatDetailFragment
@@ -268,9 +267,9 @@ class WaybillFragment : Fragment(R.layout.fragment_waybill) {
 
         Firebase.database.reference.child("Users").child(userId!!).get()
             .addOnSuccessListener {
-                val myUserItem = it.getValue(UserItem::class.java)
-                myUserName = myUserItem?.userNickname ?: ""
-                myUserProfileImage = myUserItem?.userProfileImage ?: ""
+                val myUser = it.getValue(User::class.java)
+                myUserName = myUser?.userNickname ?: ""
+                myUserProfileImage = myUser?.userProfileImage ?: ""
 
                 getOtherUserData()
             }
@@ -466,11 +465,11 @@ class WaybillFragment : Fragment(R.layout.fragment_waybill) {
     private fun getOtherUserData() {
         Firebase.database.reference.child("Users").child(otherUserId!!).get()
             .addOnSuccessListener {
-                val otherUserItem = it.getValue(UserItem::class.java)
-                chatDetailAdapter.otherUserItem = otherUserItem
-                otherUserName = otherUserItem?.userNickname.toString()
-                otherUserToken = otherUserItem?.userToken.orEmpty()
-                otherUserProfileImage = otherUserItem?.userProfileImage.orEmpty()
+                val otherUser = it.getValue(User::class.java)
+                chatDetailAdapter.otherUser = otherUser
+                otherUserName = otherUser?.userNickname.toString()
+                otherUserToken = otherUser?.userToken.orEmpty()
+                otherUserProfileImage = otherUser?.userProfileImage.orEmpty()
                 getChatData()
             }
     }

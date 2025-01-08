@@ -14,12 +14,12 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
-import pnu.cse.onionmarket.UserItem
+import pnu.cse.onionmarket.user.User
 import pnu.cse.onionmarket.databinding.ItemChatDetailBinding
 
 class ChatDetailAdapter() : ListAdapter<ChatDetailItem, ChatDetailAdapter.ViewHolder>(differ) {
 
-    var otherUserItem: UserItem? = null
+    var otherUser: User? = null
 
     private var previousUserId: String? = null
 
@@ -52,7 +52,7 @@ class ChatDetailAdapter() : ListAdapter<ChatDetailItem, ChatDetailAdapter.ViewHo
 
             binding.message.text = item.message
 
-            if (item.userId == otherUserItem?.userId) {
+            if (item.userId == otherUser?.userId) {
                 binding.profileImage.isVisible = true
                 binding.chatItem.gravity = Gravity.START
                 if (item.userId == previousUserId) {
